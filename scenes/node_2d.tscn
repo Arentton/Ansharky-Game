@@ -1,5 +1,36 @@
-[gd_scene format=3 uid="uid://bkg87lk33mx15"]
+[gd_scene load_steps=5 format=3 uid="uid://bkg87lk33mx15"]
+
+[ext_resource type="Script" uid="uid://byc3iwgge777t" path="res://scripts/analyst.gd" id="1_0hol4"]
+[ext_resource type="Script" uid="uid://dbbp2o76ubhtf" path="res://scripts/astronaut.gd" id="2_q6r6c"]
+[ext_resource type="Script" uid="uid://dwmwdvjef4xgn" path="res://scripts/dispatcher.gd" id="3_kdubu"]
+[ext_resource type="Script" uid="uid://dg2e8u3huu7al" path="res://scripts/engineer.gd" id="4_d21ai"]
 
 [node name="Node2D" type="Node2D"]
 
-[node name="CharacterBody2D" type="CharacterBody2D" parent="."]
+[node name="analyst" type="CharacterBody2D" parent="."]
+script = ExtResource("1_0hol4")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="analyst"]
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="analyst"]
+
+[node name="astronaut" type="CharacterBody2D" parent="."]
+script = ExtResource("2_q6r6c")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="astronaut"]
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="astronaut"]
+
+[node name="dispatcher" type="CharacterBody2D" parent="."]
+script = ExtResource("3_kdubu")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="dispatcher"]
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="dispatcher"]
+
+[node name="engineer" type="CharacterBody2D" parent="."]
+script = ExtResource("4_d21ai")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="engineer"]
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="engineer"]

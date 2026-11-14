@@ -1,8 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://diiq4qp1b6163"]
-
-[ext_resource type="Script" uid="uid://er05an28pkxs" path="res://scenes/character_body_2d.gd" id="1_v06w7"]
-
-[node name="astronaut" type="CharacterBody2D"]
-script = ExtResource("1_v06w7")
-
-[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]

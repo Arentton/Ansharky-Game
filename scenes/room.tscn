@@ -1,0 +1,414 @@
+[gd_scene load_steps=36 format=3]
+
+[ext_resource type="Script" path="res://scripts/workstation.gd" id="ws"]
+[ext_resource type="Shader" path="res://shaders/outline.gdshader" id="outline"]
+[ext_resource type="Script" path="res://scripts/starfield_background.gd" id="stars"]
+[ext_resource type="Texture2D" path="res://assets/room/floor.png" id="tex_3"]
+[ext_resource type="Texture2D" path="res://assets/image_2026-11-14_21-59-41.png" id="tex_4"]
+[ext_resource type="Texture2D" path="res://assets/image_2026-11-15_01-03-54.png" id="tex_5"]
+[ext_resource type="Texture2D" path="res://assets/image_2026-11-15_01-04-39.png" id="tex_6"]
+[ext_resource type="Texture2D" path="res://assets/room/front_edge.png" id="tex_7"]
+[ext_resource type="Texture2D" path="res://assets/doc_2026-11-15_00-08-44.png" id="tex_8"]
+[ext_resource type="Texture2D" path="res://assets/image_2026-11-15_00-16-04.png" id="tex_9"]
+[ext_resource type="Texture2D" path="res://assets/image_2026-11-14_22-00-41.png" id="tex_10"]
+[ext_resource type="Texture2D" path="res://assets/image_2026-11-14_22-00-59.png" id="tex_11"]
+[ext_resource type="Texture2D" path="res://assets/image_2026-11-14_22-00-30.png" id="tex_12"]
+[ext_resource type="Texture2D" path="res://assets/room/spacesuit_station.png" id="tex_13"]
+[ext_resource type="Texture2D" path="res://assets/image_2026-11-15_00-28-30.png" id="tex_14"]
+[ext_resource type="Texture2D" path="res://assets/image_2026-11-14_22-03-22.png" id="tex_15"]
+[ext_resource type="Texture2D" path="res://assets/image_2026-11-14_22-01-17.png" id="tex_16"]
+[ext_resource type="Texture2D" path="res://assets/image_2026-11-14_22-03-08.png" id="tex_17"]
+[ext_resource type="Texture2D" path="res://assets/image_2026-11-14_22-01-39.png" id="tex_18"]
+
+[sub_resource type="ShaderMaterial" id="outline_mat"]
+shader = ExtResource("outline")
+shader_parameter/enabled = false
+
+[sub_resource type="ConvexPolygonShape2D" id="shape_1"]
+points = PackedVector2Array(-240, 60, 1120, 60, 1120, 164, -240, 164)
+
+[sub_resource type="ConvexPolygonShape2D" id="shape_2"]
+points = PackedVector2Array(26, 0, -79.0, 624, -260, 624, -260, 0)
+
+[sub_resource type="ConvexPolygonShape2D" id="shape_3"]
+points = PackedVector2Array(840, 0, 949.0, 624, 1140, 624, 1140, 0)
+
+[sub_resource type="ConvexPolygonShape2D" id="shape_4"]
+points = PackedVector2Array(-260, 608, 1140, 608, 1140, 680, -260, 680)
+
+[sub_resource type="RectangleShape2D" id="shape_5"]
+size = Vector2(456, 16)
+
+[sub_resource type="RectangleShape2D" id="shape_6"]
+size = Vector2(548, 214)
+
+[sub_resource type="RectangleShape2D" id="shape_7"]
+size = Vector2(70, 16)
+
+[sub_resource type="RectangleShape2D" id="shape_8"]
+size = Vector2(72, 16)
+
+[sub_resource type="RectangleShape2D" id="shape_9"]
+size = Vector2(164, 264)
+
+[sub_resource type="RectangleShape2D" id="shape_10"]
+size = Vector2(186, 16)
+
+[sub_resource type="RectangleShape2D" id="shape_11"]
+size = Vector2(278, 228)
+
+[sub_resource type="RectangleShape2D" id="shape_12"]
+size = Vector2(94, 16)
+
+[sub_resource type="RectangleShape2D" id="shape_13"]
+size = Vector2(186, 260)
+
+[sub_resource type="RectangleShape2D" id="shape_14"]
+size = Vector2(74, 16)
+
+[sub_resource type="RectangleShape2D" id="shape_15"]
+size = Vector2(278, 16)
+
+[node name="Room" type="Node2D"]
+y_sort_enabled = true
+
+[node name="Space" type="CanvasLayer" parent="."]
+layer = -1
+
+[node name="Bg" type="ColorRect" parent="Space"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.03, 0.035, 0.07, 1)
+
+[node name="Stars" type="Control" parent="Space"]
+modulate = Color(1, 1, 1, 0.55)
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("stars")
+
+[node name="Walls" type="Node2D" parent="."]
+
+[node name="Floor" type="Sprite2D" parent="Walls"]
+z_index = -20
+texture_filter = 1
+position = Vector2(-120, 160)
+scale = Vector2(2, 2)
+centered = false
+flip_h = false
+texture = ExtResource("tex_3")
+
+[node name="BackWall" type="Sprite2D" parent="Walls"]
+z_index = -19
+texture_filter = 1
+position = Vector2(0, 0)
+scale = Vector2(2, 2)
+centered = false
+flip_h = false
+texture = ExtResource("tex_4")
+
+[node name="LeftWall" type="Sprite2D" parent="Walls"]
+z_index = -17
+texture_filter = 1
+position = Vector2(-176, 0)
+scale = Vector2(2, 2)
+centered = false
+flip_h = false
+texture = ExtResource("tex_5")
+
+[node name="RightWall" type="Sprite2D" parent="Walls"]
+z_index = -17
+texture_filter = 1
+position = Vector2(790, 0)
+scale = Vector2(2, 2)
+centered = false
+flip_h = true
+texture = ExtResource("tex_6")
+
+[node name="FrontEdge" type="Sprite2D" parent="Walls"]
+z_index = 10
+texture_filter = 1
+position = Vector2(-116, 610)
+scale = Vector2(2, 2)
+centered = false
+flip_h = false
+texture = ExtResource("tex_7")
+
+[node name="Door" type="Sprite2D" parent="Walls"]
+z_index = -18
+texture_filter = 1
+position = Vector2(59.0, 32)
+scale = Vector2(2, 2)
+centered = false
+flip_h = false
+texture = ExtResource("tex_8")
+
+[node name="NasaLogo" type="Sprite2D" parent="Walls"]
+z_index = -18
+texture_filter = 1
+position = Vector2(187.0, 6)
+scale = Vector2(2, 2)
+centered = false
+flip_h = false
+texture = ExtResource("tex_9")
+
+[node name="WallColliders" type="StaticBody2D" parent="."]
+
+[node name="Back" type="CollisionShape2D" parent="WallColliders"]
+shape = SubResource("shape_1")
+
+[node name="Left" type="CollisionShape2D" parent="WallColliders"]
+shape = SubResource("shape_2")
+
+[node name="Right" type="CollisionShape2D" parent="WallColliders"]
+shape = SubResource("shape_3")
+
+[node name="Front" type="CollisionShape2D" parent="WallColliders"]
+shape = SubResource("shape_4")
+
+[node name="Props" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="DispatcherConsole" type="Node2D" parent="Props"]
+position = Vector2(600, 178)
+script = ExtResource("ws")
+role = "dispatcher"
+station_name = "Пульт управления полётом"
+action_text = "Связаться с экипажем"
+
+[node name="Sprite2D" type="Sprite2D" parent="Props/DispatcherConsole"]
+texture_filter = 1
+material = SubResource("outline_mat")
+position = Vector2(-240.0, -66)
+scale = Vector2(2, 2)
+centered = false
+texture = ExtResource("tex_10")
+
+[node name="Body" type="StaticBody2D" parent="Props/DispatcherConsole"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Props/DispatcherConsole/Body"]
+position = Vector2(0, 38)
+shape = SubResource("shape_5")
+
+[node name="InteractArea" type="Area2D" parent="Props/DispatcherConsole"]
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Props/DispatcherConsole/InteractArea"]
+position = Vector2(0, 29.0)
+shape = SubResource("shape_6")
+
+[node name="Hint" type="Label" parent="Props/DispatcherConsole"]
+visible = false
+z_index = 50
+z_as_relative = false
+offset_left = -160.0
+offset_top = -82.0
+offset_right = 160.0
+offset_bottom = -56.0
+theme_override_colors/font_outline_color = Color(0.05, 0.06, 0.12, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 15
+text = "Пульт управления полётом"
+horizontal_alignment = 1
+
+[node name="DispatcherChair" type="Node2D" parent="Props"]
+position = Vector2(600, 238)
+
+[node name="Sprite2D" type="Sprite2D" parent="Props/DispatcherChair"]
+texture_filter = 1
+position = Vector2(-31.0, -14)
+scale = Vector2(2, 2)
+centered = false
+texture = ExtResource("tex_11")
+
+[node name="Radar" type="Node2D" parent="Props"]
+position = Vector2(350, 178)
+
+[node name="Sprite2D" type="Sprite2D" parent="Props/Radar"]
+texture_filter = 1
+position = Vector2(-49.0, -52)
+scale = Vector2(2, 2)
+centered = false
+texture = ExtResource("tex_12")
+
+[node name="Body" type="StaticBody2D" parent="Props/Radar"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Props/Radar/Body"]
+position = Vector2(0, 38)
+shape = SubResource("shape_7")
+
+[node name="SpacesuitStation" type="Node2D" parent="Props"]
+position = Vector2(60, 294)
+script = ExtResource("ws")
+role = "astronaut"
+station_name = "Шлюз и скафандр"
+action_text = "Надеть скафандр"
+
+[node name="Sprite2D" type="Sprite2D" parent="Props/SpacesuitStation"]
+texture_filter = 1
+material = SubResource("outline_mat")
+position = Vector2(-44.0, -102)
+scale = Vector2(2, 2)
+centered = false
+texture = ExtResource("tex_13")
+
+[node name="Body" type="StaticBody2D" parent="Props/SpacesuitStation"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Props/SpacesuitStation/Body"]
+position = Vector2(0, 38)
+shape = SubResource("shape_8")
+
+[node name="InteractArea" type="Area2D" parent="Props/SpacesuitStation"]
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Props/SpacesuitStation/InteractArea"]
+position = Vector2(0, 4.0)
+shape = SubResource("shape_9")
+
+[node name="Hint" type="Label" parent="Props/SpacesuitStation"]
+visible = false
+z_index = 50
+z_as_relative = false
+offset_left = -160.0
+offset_top = -132.0
+offset_right = 160.0
+offset_bottom = -106.0
+theme_override_colors/font_outline_color = Color(0.05, 0.06, 0.12, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 15
+text = "Шлюз и скафандр"
+horizontal_alignment = 1
+
+[node name="AnalystChair" type="Node2D" parent="Props"]
+position = Vector2(140, 398)
+
+[node name="Sprite2D" type="Sprite2D" parent="Props/AnalystChair"]
+texture_filter = 1
+position = Vector2(-31.0, -26)
+scale = Vector2(2, 2)
+centered = false
+texture = ExtResource("tex_14")
+
+[node name="AnalystDesk" type="Node2D" parent="Props"]
+position = Vector2(140, 478)
+script = ExtResource("ws")
+role = "analyst"
+station_name = "Станция анализа данных"
+action_text = "Анализировать данные"
+
+[node name="Sprite2D" type="Sprite2D" parent="Props/AnalystDesk"]
+texture_filter = 1
+material = SubResource("outline_mat")
+position = Vector2(-117.0, -72)
+scale = Vector2(2, 2)
+centered = false
+texture = ExtResource("tex_15")
+
+[node name="Body" type="StaticBody2D" parent="Props/AnalystDesk"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Props/AnalystDesk/Body"]
+position = Vector2(0, 38)
+shape = SubResource("shape_10")
+
+[node name="InteractArea" type="Area2D" parent="Props/AnalystDesk"]
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Props/AnalystDesk/InteractArea"]
+position = Vector2(0, 22.0)
+shape = SubResource("shape_11")
+
+[node name="Hint" type="Label" parent="Props/AnalystDesk"]
+visible = false
+z_index = 50
+z_as_relative = false
+offset_left = -160.0
+offset_top = -96.0
+offset_right = 160.0
+offset_bottom = -70.0
+theme_override_colors/font_outline_color = Color(0.05, 0.06, 0.12, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 15
+text = "Станция анализа данных"
+horizontal_alignment = 1
+
+[node name="EngineerRack" type="Node2D" parent="Props"]
+position = Vector2(848, 384)
+script = ExtResource("ws")
+role = "engineer"
+station_name = "Серверная стойка"
+action_text = "Починить систему"
+
+[node name="Sprite2D" type="Sprite2D" parent="Props/EngineerRack"]
+texture_filter = 1
+material = SubResource("outline_mat")
+position = Vector2(-71.0, -118)
+scale = Vector2(2, 2)
+centered = false
+texture = ExtResource("tex_16")
+
+[node name="Body" type="StaticBody2D" parent="Props/EngineerRack"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Props/EngineerRack/Body"]
+position = Vector2(0, 38)
+shape = SubResource("shape_12")
+
+[node name="InteractArea" type="Area2D" parent="Props/EngineerRack"]
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Props/EngineerRack/InteractArea"]
+position = Vector2(0, 6.0)
+shape = SubResource("shape_13")
+
+[node name="Hint" type="Label" parent="Props/EngineerRack"]
+visible = false
+z_index = 50
+z_as_relative = false
+offset_left = -160.0
+offset_top = -128.0
+offset_right = 160.0
+offset_bottom = -102.0
+theme_override_colors/font_outline_color = Color(0.05, 0.06, 0.12, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 15
+text = "Серверная стойка"
+horizontal_alignment = 1
+
+[node name="Printer" type="Node2D" parent="Props"]
+position = Vector2(864, 498)
+
+[node name="Sprite2D" type="Sprite2D" parent="Props/Printer"]
+texture_filter = 1
+position = Vector2(-49.0, -48)
+scale = Vector2(2, 2)
+centered = false
+texture = ExtResource("tex_17")
+
+[node name="Body" type="StaticBody2D" parent="Props/Printer"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Props/Printer/Body"]
+position = Vector2(0, 38)
+shape = SubResource("shape_14")
+
+[node name="SideConsole" type="Node2D" parent="Props"]
+position = Vector2(600, 554)
+
+[node name="Sprite2D" type="Sprite2D" parent="Props/SideConsole"]
+texture_filter = 1
+position = Vector2(-159.0, -62)
+scale = Vector2(2, 2)
+centered = false
+texture = ExtResource("tex_18")
+
+[node name="Body" type="StaticBody2D" parent="Props/SideConsole"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Props/SideConsole/Body"]
+position = Vector2(0, 38)
+shape = SubResource("shape_15")

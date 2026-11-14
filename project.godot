@@ -11,8 +11,13 @@ config_version=5
 [application]
 
 config/name="Ansharky Game"
+run/main_scene="res://scenes/control.tscn"
 config/features=PackedStringArray("4.5", "Forward Plus")
 config/icon="res://icon.svg"
+
+[autoload]
+
+HighLevelNetworkHandler="*res://scripts/high_level_network_handler.gd"
 
 [editor_plugins]
 

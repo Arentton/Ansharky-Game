@@ -1,6 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://c1mposojo4tt3"]
+[gd_scene load_steps=4 format=3 uid="uid://c1mposojo4tt3"]
 
 [ext_resource type="Script" uid="uid://ca11ev78oesfr" path="res://scripts/highlevelUI.gd" id="1_0fbet"]
+[ext_resource type="Script" uid="uid://c2ls78qa0wx6l" path="res://scripts/starfield_background.gd" id="2_stars"]
+[ext_resource type="Texture2D" uid="uid://b6gjolx15hq14" path="res://assets/image_2026-11-15_00-48-50.png" id="3_brbbq"]
 
 [node name="Control" type="Control"]
 layout_mode = 3
@@ -11,17 +13,233 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_0fbet")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
-layout_mode = 0
-offset_left = 483.0
-offset_top = 509.0
-offset_right = 662.0
-offset_bottom = 575.0
+[node name="Background" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_stars")
 
-[node name="server" type="Button" parent="VBoxContainer"]
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Menu" type="VBoxContainer" parent="Center"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="TextureRect" parent="Center/Menu"]
+custom_minimum_size = Vector2(322, 168)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+texture = ExtResource("3_brbbq")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Panel" type="PanelContainer" parent="Center/Menu"]
+custom_minimum_size = Vector2(340, 0)
+layout_mode = 2
+
+[node name="Layout" type="VBoxContainer" parent="Center/Menu/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="MainPanel" type="VBoxContainer" parent="Center/Menu/Panel/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="server" type="Button" parent="Center/Menu/Panel/Layout/MainPanel"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 text = "Server"
 
-[node name="client" type="Button" parent="VBoxContainer"]
+[node name="client" type="Button" parent="Center/Menu/Panel/Layout/MainPanel"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 text = "Client"
+
+[node name="RolePanel" type="VBoxContainer" parent="Center/Menu/Panel/Layout"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="RoleTitle" type="Label" parent="Center/Menu/Panel/Layout/RolePanel"]
+layout_mode = 2
+text = "Choose your character"
+horizontal_alignment = 1
+
+[node name="RoleButtons" type="GridContainer" parent="Center/Menu/Panel/Layout/RolePanel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 10
+columns = 2
+
+[node name="analyst" type="Button" parent="Center/Menu/Panel/Layout/RolePanel/RoleButtons"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "analyst"
+
+[node name="astronaut" type="Button" parent="Center/Menu/Panel/Layout/RolePanel/RoleButtons"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "astronaut"
+
+[node name="dispatcher" type="Button" parent="Center/Menu/Panel/Layout/RolePanel/RoleButtons"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "dispatcher"
+
+[node name="engineer" type="Button" parent="Center/Menu/Panel/Layout/RolePanel/RoleButtons"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "engineer"
+
+[node name="RoleBack" type="Button" parent="Center/Menu/Panel/Layout/RolePanel"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Back"
+
+[node name="JoinPanel" type="VBoxContainer" parent="Center/Menu/Panel/Layout"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="IpLabel" type="Label" parent="Center/Menu/Panel/Layout/JoinPanel"]
+layout_mode = 2
+text = "Host IP address"
+
+[node name="IpEdit" type="LineEdit" parent="Center/Menu/Panel/Layout/JoinPanel"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+placeholder_text = "127.0.0.1"
+
+[node name="JoinRoleLabel" type="Label" parent="Center/Menu/Panel/Layout/JoinPanel"]
+layout_mode = 2
+text = "Your role"
+
+[node name="JoinRoles" type="GridContainer" parent="Center/Menu/Panel/Layout/JoinPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 10
+columns = 2
+
+[node name="analyst" type="Button" parent="Center/Menu/Panel/Layout/JoinPanel/JoinRoles"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "analyst"
+
+[node name="astronaut" type="Button" parent="Center/Menu/Panel/Layout/JoinPanel/JoinRoles"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "astronaut"
+
+[node name="dispatcher" type="Button" parent="Center/Menu/Panel/Layout/JoinPanel/JoinRoles"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "dispatcher"
+
+[node name="engineer" type="Button" parent="Center/Menu/Panel/Layout/JoinPanel/JoinRoles"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "engineer"
+
+[node name="ConnectButton" type="Button" parent="Center/Menu/Panel/Layout/JoinPanel"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "Connect"
+
+[node name="JoinStatus" type="Label" parent="Center/Menu/Panel/Layout/JoinPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="JoinBack" type="Button" parent="Center/Menu/Panel/Layout/JoinPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Back"
+
+[node name="LobbyPanel" type="VBoxContainer" parent="Center/Menu/Panel/Layout"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="LobbyTitle" type="Label" parent="Center/Menu/Panel/Layout/LobbyPanel"]
+layout_mode = 2
+text = "Room"
+horizontal_alignment = 1
+
+[node name="PlayersLabel" type="Label" parent="Center/Menu/Panel/Layout/LobbyPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="LobbyRoles" type="GridContainer" parent="Center/Menu/Panel/Layout/LobbyPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 10
+columns = 2
+
+[node name="analyst" type="Button" parent="Center/Menu/Panel/Layout/LobbyPanel/LobbyRoles"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "analyst"
+
+[node name="astronaut" type="Button" parent="Center/Menu/Panel/Layout/LobbyPanel/LobbyRoles"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "astronaut"
+
+[node name="dispatcher" type="Button" parent="Center/Menu/Panel/Layout/LobbyPanel/LobbyRoles"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "dispatcher"
+
+[node name="engineer" type="Button" parent="Center/Menu/Panel/Layout/LobbyPanel/LobbyRoles"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "engineer"
+
+[node name="LobbyStatus" type="Label" parent="Center/Menu/Panel/Layout/LobbyPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+horizontal_alignment = 1
+
+[node name="LeaveButton" type="Button" parent="Center/Menu/Panel/Layout/LobbyPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Leave"

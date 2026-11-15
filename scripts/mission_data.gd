@@ -98,8 +98,8 @@ const MODULES := {
 		"desc": "+25 т к объёму бака."},
 	"composite": {"name": "Композитная обшивка", "metal": 20, "mass": 0.0, "kind": "composite", "data": 0,
 		"desc": "-3 т к массе корпуса (не больше чем вдвое)."},
-	"crew": {"name": "Капсула экипажа", "metal": 30, "mass": 4.0, "kind": "crew", "data": 0,
-		"desc": "Пилотируемая миссия: данные с поверхности ×1.4 (+тренировка). Только с возвратом."},
+	"crew": {"name": "Лунный модуль экипажа", "metal": 30, "mass": 4.0, "kind": "crew", "data": 0,
+		"desc": "Астронавт сам спускается на Луну: данные с поверхности ×1.4 (+тренировка). Только с возвратом."},
 }
 const MODULE_ORDER := ["camera", "magneto", "spectro", "radar", "seismo", "drill", "rover", "samples",
 	"antenna", "solar", "booster", "tank", "composite", "crew"]
@@ -127,6 +127,15 @@ const EVENTS := {
 
 static func count(cargo: Array, id: String) -> int:
 	return cargo.count(id)
+
+
+## Сколько научных приборов на борту (без поддержки и улучшений ракеты).
+static func science_count(cargo: Array) -> int:
+	var n := 0
+	for id in cargo:
+		if MODULES[id]["kind"] in ["orbital", "surface", "samples"]:
+			n += 1
+	return n
 
 
 static func cargo_mass(cargo: Array) -> float:
@@ -175,6 +184,10 @@ static func launch_problems(st: Dictionary) -> PackedStringArray:
 	var profile_id: String = st["profile"]
 	var need := fuel_needed(ship_id, cargo, profile_id)
 	var mass: float = stats["dry"] + stats["cargo"] + st["tank_fuel"]
+	if not st.get("flight", {}).is_empty():
+		out.append("Предыдущая миссия ещё в полёте")
+	if science_count(cargo) == 0:
+		out.append("Нет научного оборудования на борту — инженер строит приборы, астронавт грузит")
 	if stats["cargo"] > stats["payload"] + 0.001:
 		out.append("Перегруз: %.1f / %.0f т" % [stats["cargo"], stats["payload"]])
 	if st["tank_fuel"] + 0.001 < need:
@@ -184,8 +197,8 @@ static func launch_problems(st: Dictionary) -> PackedStringArray:
 	if SHIPS[ship_id]["perks"].get("no_landing", false) and PROFILES[profile_id]["surface"]:
 		out.append("«%s» не умеет садиться" % SHIPS[ship_id]["name"])
 	if count(cargo, "crew") > 0 and profile_id != "return":
-		out.append("С экипажем можно лететь только «Посадка и возврат»")
-	if not LAUNCH_WINDOWS.has(st["day"]):
+		out.append("С лунным модулем экипажа можно лететь только «Посадка и возврат»")
+	if not LAUNCH_WINDOWS.has(int(st["day"])):
 		out.append("Сегодня нет окна запуска")
 	if st["event"] == "weather":
 		out.append("Шторм — пуск запрещён")
@@ -198,7 +211,7 @@ static func launch_problems(st: Dictionary) -> PackedStringArray:
 static func forecast(st: Dictionary) -> Dictionary:
 	var ship_id: String = st["ship"]
 	if ship_id == "":
-		return {"total": 0, "lines": PackedStringArray()}
+		return {"total": 0, "lines": PackedStringArray(), "orbital": 0.0, "surface": 0.0, "samples": 0.0, "mult": 1.0}
 	var cargo: Array = st["cargo"]
 	var perks: Dictionary = SHIPS[ship_id]["perks"]
 	var profile_id: String = st["profile"]
@@ -231,38 +244,44 @@ static func forecast(st: Dictionary) -> Dictionary:
 	if count(cargo, "crew") > 0:
 		surface *= 1.4 + st["crew_training"]
 		lines.append("Экипаж: поверхность ×%.2f" % (1.4 + st["crew_training"]))
-	var science := orbital + surface
 	lines.append("Орбитальные приборы: %.0f" % orbital)
 	lines.append("Приборы на поверхности: %.0f" % surface)
+	# mult — общий множитель для орбитальных и поверхностных данных
+	var mult := 1.0
 	if count(cargo, "solar") > 0:
-		science *= 1.15
+		mult *= 1.15
 		lines.append("Солнечные панели: ×1.15")
-	if count(cargo, "antenna") == 0 and science > 0:
-		science *= 0.5
+	if count(cargo, "antenna") == 0 and orbital + surface > 0:
+		mult *= 0.5
 		lines.append("Нет антенны: на Землю дойдёт ×0.5")
 	var need := fuel_needed(ship_id, cargo, profile_id)
 	var margin := 0.0
 	if need > 0:
 		margin = clampf((st["tank_fuel"] - need) / need, 0.0, 0.5)
 	if margin > 0:
-		science *= 1.0 + margin
+		mult *= 1.0 + margin
 		lines.append("Запас топлива: +%d%% времени работы" % roundi(margin * 100))
 	if st["event"] == "solar_flare":
-		science *= 0.8
+		mult *= 0.8
 		lines.append("Солнечная вспышка: ×0.8")
 	if samples > 0:
 		lines.append("Образцы на Землю: %.0f" % samples)
 	if idle > 0:
 		lines.append("Не работают в этой миссии: %d приборов" % idle)
-	return {"total": roundi(science + samples), "lines": lines}
+	var science := (orbital + surface) * mult
+	return {"total": roundi(science + samples), "lines": lines,
+		"orbital": orbital, "surface": surface, "samples": samples, "mult": mult}
 
 
-static func module_cost(id: String, event: String) -> int:
+## prio — прибор из приоритетов NASA, которые аналитик передал инженеру (скидка).
+static func module_cost(id: String, event: String, prio := false) -> int:
 	var c: float = MODULES[id]["metal"]
 	if event == "strike":
 		c *= 1.5
 	elif event == "breakthrough":
 		c *= 0.7
+	if prio:
+		c *= 0.75
 	return ceili(c)
 
 

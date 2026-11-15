@@ -903,17 +903,6 @@ autoplay = "idle_down_engineer"
 replication_config = SubResource("SceneReplicationConfig_player")
 public_visibility = false
 
-[node name="HUD" type="CanvasLayer" parent="."]
-
-[node name="StatusLabel" type="Label" parent="HUD"]
-unique_name_in_owner = true
-offset_left = 16.0
-offset_top = 12.0
-offset_right = 600.0
-offset_bottom = 40.0
-theme_override_font_sizes/font_size = 20
-text = "..."
-
 [node name="Doc20261115085550" type="Sprite2D" parent="."]
 position = Vector2(674, 100)
 texture = ExtResource("31_g3arh")

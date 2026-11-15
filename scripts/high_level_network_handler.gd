@@ -88,7 +88,7 @@ func leave() -> void:
 	input_locked = false
 
 
-## Одиночный тест: без сети, можно переключаться между всеми персонажами.
+## Одиночный тест: без сети, один персонаж выбранной роли.
 func start_test_mode(role: String = "dispatcher") -> void:
 	leave()
 	test_mode = true

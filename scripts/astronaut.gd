@@ -12,6 +12,8 @@ const SPEED = 300.0
 var idleDir = DOWN
 
 func _physics_process(_delta: float) -> void:
+	if not visible:
+		return # астронавт улетел к Луне
 	if not HighLevelNetworkHandler.is_my_character(self):
 		# Этим персонажем управляет другой игрок: позиция и анимация приходят по сети.
 		if not anim.is_playing():

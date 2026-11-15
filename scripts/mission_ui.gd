@@ -3,6 +3,10 @@ extends CanvasLayer
 ## окна рабочих мест (по одному на роль) и экран пуска к Луне.
 
 const D = preload("res://scripts/mission_data.gd")
+const F = preload("res://scripts/flight_data.gd")
+const FlightUI = preload("res://scripts/flight_ui.gd")
+const LaunchVideo = preload("res://scripts/launch_video.gd")
+const ShipDiagram = preload("res://scripts/ship_diagram.gd")
 
 const C_TITLE := Color.WHITE
 const C_TEXT := Color(0.875, 0.875, 0.875)
@@ -27,17 +31,23 @@ var _content: VBoxContainer
 var _scroll: ScrollContainer
 var _role := ""
 var _last_key := ""
-var _launch_view: Control # карточка последнего пуска
+var _flight_ui: CanvasLayer      # ЦУП диспетчера или вид с борта астронавта
+var _video: CanvasLayer          # ролик пуска
+var _toast_layer: CanvasLayer    # сообщения поверх всех окон
 
 
 func _ready() -> void:
 	layer = 5
 	_ms = get_node("/root/MissionState")
+	_toast_layer = CanvasLayer.new()
+	_toast_layer.layer = 25
+	add_child(_toast_layer)
 	_build_hud()
 	_build_panel()
 	_ms.changed.connect(_on_changed)
 	_ms.notified.connect(toast)
 	_ms.launch_started.connect(_show_launch)
+	_ms.flight_finished.connect(_show_result)
 	_ms.campaign_finished.connect(_show_final)
 	_on_changed()
 
@@ -48,14 +58,23 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
+## Роль этого игрока (в одиночном тесте — выбранная в меню).
+func my_role() -> String:
+	var net := HighLevelNetworkHandler
+	return net.my_role() if net.is_online() else net.test_role
+
+
 # --- Окно станции -------------------------------------------------------------
 
 func open_station(role: String) -> void:
+	if role == "dispatcher" and _flight_active():
+		_open_flight()
+		return
 	_role = role
 	_last_key = ""
 	_panel_title.text = STATION_TITLES.get(role, role)
 	_panel.visible = true
-	HighLevelNetworkHandler.input_locked = true
+	_update_lock()
 	_rebuild()
 
 
@@ -63,14 +82,70 @@ func close_station() -> void:
 	_panel.visible = false
 	_role = ""
 	# снимаем блок на кадр позже, чтобы та же клавиша E не открыла окно снова
-	(func(): HighLevelNetworkHandler.input_locked = false).call_deferred()
+	_update_lock.call_deferred()
 
 
 func is_open() -> bool:
-	return _panel.visible
+	return _panel.visible or _video != null or (_flight_ui != null and _flight_ui.is_open())
+
+
+## Персонаж стоит, пока открыто любое окно.
+func _update_lock() -> void:
+	HighLevelNetworkHandler.input_locked = is_open()
+
+
+## Клавиша E у летящего астронавта открывает и закрывает вид с борта.
+func handle_interact() -> bool:
+	if my_role() != "astronaut" or not _flight_active() or _panel.visible or _video != null:
+		return false
+	if _flight_ui != null and _flight_ui.is_open():
+		return false
+	_open_flight()
+	return true
+
+
+func _flight_active() -> bool:
+	return not _ms.state.get("flight", {}).is_empty()
+
+
+func _open_flight() -> void:
+	if not _flight_active() or my_role() not in ["dispatcher", "astronaut"]:
+		return
+	if _panel.visible:
+		_panel.visible = false
+		_role = ""
+	if _flight_ui == null:
+		_flight_ui = FlightUI.new()
+		_flight_ui.role = my_role()
+		add_child(_flight_ui)
+		_flight_ui.closed.connect(_close_flight)
+		_flight_ui.prep_requested.connect(func():
+			_close_flight()
+			_open_prep.call_deferred())
+	_flight_ui.set_open(true)
+	_update_lock()
+
+
+func _open_prep() -> void:
+	_role = "dispatcher"
+	_last_key = ""
+	_panel_title.text = STATION_TITLES["dispatcher"]
+	_panel.visible = true
+	_update_lock()
+	_rebuild()
+
+
+func _close_flight() -> void:
+	if _flight_ui != null:
+		_flight_ui.set_open(false)
+	_update_lock.call_deferred()
 
 
 func _on_changed() -> void:
+	if not _flight_active() and _flight_ui != null:
+		_flight_ui.queue_free()
+		_flight_ui = null
+		_update_lock.call_deferred()
 	_update_hud()
 	if _panel.visible:
 		# Перестраиваем окно только если поменялось что-то кроме таймеров.
@@ -103,6 +178,28 @@ func _rebuild() -> void:
 
 func _build_analyst(st: Dictionary) -> void:
 	_content.add_child(_lbl("Деньги: %d М$   (доход +%d М$ в день)" % [st["money"], D.MONEY_INCOME], 18, C_TITLE))
+	_flight_status(st)
+	_section("★ Приоритетные данные NASA для следующей миссии")
+	for p in st["priorities"]:
+		var pr: Dictionary = F.PRIORITIES[p]
+		var card := _card()
+		var v := VBoxContainer.new()
+		v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		v.add_child(_lbl("★ " + pr["name"], 16, C_GOOD))
+		v.add_child(_lbl(pr["why"], 13, C_TEXT))
+		var mods: PackedStringArray = []
+		for m in pr["modules"]:
+			mods.append(D.MODULES[m]["name"])
+		var where := "" if pr["site_tag"] == "" else " · место посадки: %s" % F.SITE_TAG_NAMES[pr["site_tag"]]
+		v.add_child(_lbl("Приборы: %s%s" % [", ".join(mods), where], 13, C_TITLE))
+		v.add_child(_lbl("Источник: " + pr["source"], 12, C_DIM))
+		card.get_child(0).add_child(v)
+		_content.add_child(card)
+	if st["prio_sent"]:
+		_content.add_child(_lbl("✓ Инженер получил список: эти приборы ему дешевле на %d%%. За каждый выполненный приоритет — +%d%% данных и грант %d М$." % [
+			roundi((1.0 - F.PRIORITY_DISCOUNT) * 100), roundi(F.PRIORITY_BONUS * 100), F.PRIORITY_GRANT], 13, C_GOOD))
+	else:
+		_content.add_child(_btn("Передать инженеру — пусть строит эти приборы первыми", _req.bind("send_prio", []), st["priorities"].is_empty()))
 	_section("Закупка металла для инженера — %.2f М$/т" % st["metal_price"])
 	var row := _hbox()
 	for amount in [5, 10, 20]:
@@ -145,6 +242,14 @@ func _build_analyst(st: Dictionary) -> void:
 		_content.add_child(card)
 
 
+func _flight_status(st: Dictionary) -> void:
+	var fl: Dictionary = st["flight"]
+	if fl.is_empty():
+		return
+	_content.add_child(_lbl("Миссия #%d «%s» в полёте — время на базе остановлено. Приоритеты этой миссии: %s." % [
+		fl["n"], fl["ship_name"], ", ".join(fl["prio"].map(func(p): return F.PRIORITIES[p]["name"]))], 14, C_GOOD))
+
+
 func _ship_line(id: String) -> String:
 	var s: Dictionary = D.SHIPS[id]
 	return "Мощность %d · Груз %d т · Бак %d т · Корпус %d т" % [s["power"], s["payload"], s["tank"], s["dry"]]
@@ -154,6 +259,15 @@ func _ship_line(id: String) -> String:
 
 func _build_engineer(st: Dictionary) -> void:
 	_content.add_child(_lbl("Металл: %d т   (поставки +%d т в день)" % [st["metal"], D.METAL_INCOME], 18, C_TITLE))
+	_build_diagnostics(st)
+	if st["prio_sent"]:
+		var names: PackedStringArray = []
+		for p in st["priorities"]:
+			names.append(F.PRIORITIES[p]["name"])
+		_content.add_child(_lbl("★ Заявка аналитика — приоритеты NASA: %s. Приборы со звёздочкой дешевле на %d%%." % [
+			", ".join(names), roundi((1.0 - F.PRIORITY_DISCOUNT) * 100)], 14, C_GOOD))
+	else:
+		_content.add_child(_lbl("Аналитик ещё не передал приоритеты NASA — спросите, какие приборы строить первыми.", 13, C_DIM))
 	if st["event"] in ["strike", "breakthrough"]:
 		_content.add_child(_lbl(_ms.event_text(), 14, C_BAD if st["event"] == "strike" else C_GOOD))
 	_content.add_child(_btn("Собрать металлолом (+4…10 т, раз в день)", _req.bind("salvage", []), st["daily_used"].has("salvage")))
@@ -171,7 +285,8 @@ func _build_engineer(st: Dictionary) -> void:
 			var m: Dictionary = D.MODULES[id]
 			if not g[1].has(m["kind"]):
 				continue
-			var cost := D.module_cost(id, st["event"])
+			var prio: bool = _ms.prio_discount(id)
+			var cost := D.module_cost(id, st["event"], prio)
 			var have: int = st["warehouse"].get(id, 0)
 			var card := _card()
 			var v := VBoxContainer.new()
@@ -179,7 +294,8 @@ func _build_engineer(st: Dictionary) -> void:
 			var stats := "%.1f т" % m["mass"]
 			if m["data"] > 0:
 				stats += " · данные %d" % m["data"]
-			v.add_child(_lbl("%s   [%s]%s" % [m["name"], stats, ("   на складе: %d" % have) if have > 0 else ""], 15, C_TEXT))
+			v.add_child(_lbl("%s%s   [%s]%s" % ["★ " if prio else "", m["name"], stats, ("   на складе: %d" % have) if have > 0 else ""],
+				15, C_GOOD if prio else C_TEXT))
 			v.add_child(_lbl(m["desc"], 13, C_DIM))
 			card.get_child(0).add_child(v)
 			if have > 0:
@@ -190,9 +306,57 @@ func _build_engineer(st: Dictionary) -> void:
 			_content.add_child(card)
 
 
+## Диагностика: схема ракеты, слабые места (в ангаре) и поломки (в полёте).
+func _build_diagnostics(st: Dictionary) -> void:
+	var fl: Dictionary = st["flight"]
+	var flying := not fl.is_empty()
+	if not flying and st["ship"] == "":
+		_section("Диагностика корабля")
+		_content.add_child(_lbl("В ангаре нет корабля.", 14, C_DIM))
+		return
+	var weak: Array = fl["weak"] if flying else st["weak"]
+	var broken: Array = []
+	if flying:
+		for f in fl["faults"]:
+			broken.append(f["id"])
+	_section(("Телеметрия миссии #%d в полёте" % fl["n"]) if flying else ("Диагностика «%s»" % D.SHIPS[st["ship"]]["name"]))
+	var row := _hbox()
+	var diag := ShipDiagram.new()
+	diag.weak = weak
+	diag.broken = broken
+	row.add_child(diag)
+	var v := VBoxContainer.new()
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if weak.is_empty() and broken.is_empty():
+		v.add_child(_lbl("Слабых мест не найдено.", 14, C_GOOD))
+	for f in (fl["faults"] if flying else []):
+		var fd: Dictionary = F.FAULTS[f["id"]]
+		v.add_child(_lbl("✗ ПОЛОМКА: %s — %s" % [fd["name"], fd["broken"]], 15, C_BAD))
+		v.add_child(_lbl("Причина: %s. Диспетчеру нужно: %s." % [f["cause"], fd["need"]], 13, C_TEXT))
+	for id in weak:
+		if broken.has(id):
+			continue
+		var fd: Dictionary = F.FAULTS[id]
+		v.add_child(_lbl("⚠ Слабое место: %s — %s" % [fd["name"], fd["weak"]], 15, Color(1.0, 0.85, 0.35)))
+		v.add_child(_lbl("Если откажет, диспетчеру нужно: %s." % fd["need"], 13, C_TEXT))
+		v.add_child(_lbl(fd["history"], 12, C_DIM))
+	var sent: bool = fl["weak_sent"] if flying else st["weak_sent"]
+	if flying:
+		var reported: Array = fl["reported"]
+		var fresh := broken.size() != reported.size()
+		v.add_child(_btn("Передать телеметрию диспетчеру" if fresh or not sent else "✓ Диспетчер знает обо всех поломках",
+			_req.bind("send_report", []), not fresh and sent))
+	else:
+		v.add_child(_btn("✓ Отчёт у диспетчера" if sent else "Передать отчёт диспетчеру — он учтёт это в полёте",
+			_req.bind("send_report", []), sent))
+	row.add_child(v)
+	_content.add_child(row)
+
+
 # --- Астронавт ---------------------------------------------------------------
 
 func _build_astronaut(st: Dictionary) -> void:
+	_content.add_child(_lbl("В полёт к Луне отправитесь вы — после пуска следите за полётом с борта [E].", 14, C_GOOD))
 	var p: Dictionary = D.PROFILES[st["profile"]]
 	if st["ship"] == "":
 		_content.add_child(_lbl("В ангаре нет корабля. Попросите аналитика его купить.", 17, C_BAD))
@@ -259,6 +423,10 @@ func _works_hint(id: String, st: Dictionary) -> String:
 # --- Диспетчер ---------------------------------------------------------------
 
 func _build_dispatcher(st: Dictionary) -> void:
+	if _flight_active():
+		var go := _btn("▶ ЦУП: управление полётом миссии #%d" % st["flight"]["n"], _open_flight)
+		go.custom_minimum_size = Vector2(0, 40)
+		_content.add_child(go)
 	_section("Тип миссии")
 	var prow := _hbox()
 	for id in D.PROFILE_ORDER:
@@ -302,6 +470,14 @@ func _build_dispatcher(st: Dictionary) -> void:
 	for line in fc["lines"]:
 		_content.add_child(_lbl("· " + line, 13, C_DIM))
 
+	_section("Отчёт инженера о корабле")
+	if not st["weak_sent"]:
+		_content.add_child(_lbl("Инженер ещё не передал отчёт о слабых местах — попросите его провести диагностику.", 13, C_DIM))
+	elif st["weak"].is_empty():
+		_content.add_child(_lbl("Слабых мест нет.", 14, C_GOOD))
+	for id in (st["weak"] if st["weak_sent"] else []):
+		_content.add_child(_lbl("⚠ %s (%s): в полёте нужна %s" % [F.FAULTS[id]["name"], F.FAULTS[id]["weak"], F.FAULTS[id]["need"]], 14, Color(1.0, 0.85, 0.35)))
+
 	_section("Предстартовая проверка")
 	var problems := D.launch_problems(st)
 	if st["launching"]:
@@ -341,12 +517,12 @@ func _build_hud() -> void:
 	_toasts = VBoxContainer.new()
 	_toasts.anchor_left = 1
 	_toasts.anchor_right = 1
-	_toasts.offset_left = -430
-	_toasts.offset_right = -12
+	_toasts.offset_left = -548
+	_toasts.offset_right = -124
 	_toasts.offset_top = 48
 	_toasts.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_toasts.alignment = BoxContainer.ALIGNMENT_BEGIN
-	add_child(_toasts)
+	_toast_layer.add_child(_toasts)
 
 	_countdown_label = Label.new()
 	_countdown_label.anchor_left = 0.5
@@ -367,27 +543,98 @@ func _update_hud() -> void:
 	var st: Dictionary = _ms.state
 	if st.is_empty():
 		return
-	var t := ceili(st["time_left"])
-	var window := ""
-	if D.LAUNCH_WINDOWS.has(st["day"]):
-		window = "[color=#7ef08c]ОКНО ОТКРЫТО[/color]"
-	else:
-		var next := -1
-		for d in D.LAUNCH_WINDOWS:
-			if d > st["day"]:
-				next = d
-				break
-		window = "окно: день %d" % next if next > 0 else "окон больше нет"
 	var ship: String = "нет" if st["ship"] == "" else D.SHIPS[st["ship"]]["name"]
-	_hud_label.text = ("День %d/%d %d:%02d   |   Деньги [b]%d[/b] М$   Металл [b]%d[/b] т   Топливо [b]%.0f[/b] т"
-		+ "   |   Корабль: %s   |   %s   |   Данные: [b]%d[/b]") % [
-		st["day"], D.DAYS, t / 60, t % 60, st["money"], st["metal"], st["fuel"], ship, window, st["total_data"]]
+	_hud_label.text = ("Деньги [b]%d[/b] М$   Металл [b]%d[/b] т   Топливо [b]%.0f[/b] т"
+		+ "   |   Корабль: %s   |   Данные: [b]%d[/b]") % [
+		st["money"], st["metal"], st["fuel"], ship, st["total_data"]]
 	_countdown_label.visible = st["launching"]
 	if st["launching"]:
 		_countdown_label.text = "ПУСК ЧЕРЕЗ %d" % ceili(st["countdown"])
+	_update_day_panel(st)
+
+
+# --- Боковая кнопка «День»: день, окно запуска и событие — по запросу ---------
+
+var _day_btn: Button
+var _day_panel: PanelContainer
+var _day_text: RichTextLabel
+var _day_log: PackedStringArray = []
+
+
+func _build_day_panel() -> void:
+	_day_btn = Button.new()
+	_day_btn.anchor_left = 1
+	_day_btn.anchor_right = 1
+	_day_btn.offset_left = -112
+	_day_btn.offset_right = -6
+	_day_btn.offset_top = 8
+	_day_btn.offset_bottom = 88
+	_day_btn.focus_mode = Control.FOCUS_NONE
+	_day_btn.tooltip_text = "День, окно запуска и событие дня"
+	_day_btn.pressed.connect(func():
+		_day_panel.visible = not _day_panel.visible
+		_day_btn.modulate = Color.WHITE)
+	add_child(_day_btn)
+	_day_panel = PanelContainer.new()
+	_day_panel.anchor_left = 1
+	_day_panel.anchor_right = 1
+	_day_panel.offset_left = -440
+	_day_panel.offset_right = -118
+	_day_panel.offset_top = 8
+	_day_panel.offset_bottom = 308
+	_day_panel.visible = false
+	add_child(_day_panel)
+	_day_text = RichTextLabel.new()
+	_day_text.bbcode_enabled = true
+	_day_text.scroll_active = true
+	_day_text.add_theme_font_size_override("normal_font_size", 14)
+	_day_panel.add_child(_day_text)
+
+
+func _update_day_panel(st: Dictionary) -> void:
+	if _day_btn == null:
+		_build_day_panel()
+	var t := ceili(st["time_left"])
+	var day := int(st["day"])
+	var fl: Dictionary = st.get("flight", {})
+	var window := ""
+	if not fl.is_empty():
+		window = "[color=#7ee0ff]идёт полёт #%d — время на базе стоит[/color]" % fl["n"]
+	elif D.LAUNCH_WINDOWS.has(day):
+		window = "[color=#7ef08c]окно запуска ОТКРЫТО[/color]"
+	else:
+		var next := -1
+		for d in D.LAUNCH_WINDOWS:
+			if d > day:
+				next = d
+				break
+		window = ("следующее окно запуска — день %d" % next) if next > 0 else "окон запуска больше нет"
+	_day_btn.text = "День %d\n%d:%02d\n%s" % [day, t / 60, t % 60, "◂" if _day_panel.visible else "▸"]
+	if not _day_panel.visible:
+		return
+	var s := "[b]День %d из %d[/b] · до конца дня %d:%02d\n%s\n\n" % [day, D.DAYS, t / 60, t % 60, window]
+	s += "[b]Событие дня:[/b] %s\n" % _ms.event_text()
+	s += "Цены: топливо %.2f М$/т, металл %.2f М$/т\n" % [st["fuel_price"], st["metal_price"]]
+	if not _day_log.is_empty():
+		s += "\n[b]Журнал:[/b]\n"
+		for i in range(_day_log.size() - 1, -1, -1):
+			s += "[color=#aaaaaa]· %s[/color]\n" % _day_log[i]
+	_day_text.text = s
 
 
 func toast(text: String) -> void:
+	# новости о дне и событиях — не всплывают, а уходят в боковую панель «День»
+	if text.begins_with("День ") or text.begins_with("Событие: "):
+		_day_log.append(text)
+		if _day_log.size() > 8:
+			_day_log.remove_at(0)
+		if _day_btn != null and not _day_panel.visible:
+			var tw := _day_btn.create_tween()
+			tw.tween_property(_day_btn, "modulate", Color(1.6, 1.4, 0.6), 0.25)
+			tw.tween_property(_day_btn, "modulate", Color.WHITE, 0.5)
+			tw.set_loops(3)
+		_update_hud()
+		return
 	var l := _lbl(text, 14, C_BAD if text.begins_with("⚠") else C_TEXT)
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var p := PanelContainer.new()
@@ -496,33 +743,56 @@ func _bar(fill: float, marker := -1.0) -> Control:
 
 # --- Пуск и итоги -------------------------------------------------------------
 
+## Пуск: у всех играет ролик, потом диспетчер попадает в ЦУП, астронавт — на борт.
 func _show_launch(mission: Dictionary) -> void:
 	if _panel.visible:
 		close_station()
-	if is_instance_valid(_launch_view):
-		_launch_view.queue_free()
+	if _video != null:
+		return
+	_video = LaunchVideo.new()
+	add_child(_video)
+	_video.closed.connect(func():
+		_video = null
+		toast("Миссия #%d «%s» летит к Луне! Ожидаемые данные ≈ %d." % [mission["n"], mission["ship_name"], mission["expected"]])
+		if my_role() in ["dispatcher", "astronaut"]:
+			_open_flight()
+		_update_lock.call_deferred())
+	_update_lock()
+
+
+func _show_result(res: Dictionary) -> void:
+	if _flight_ui != null:
+		_flight_ui.queue_free()
+		_flight_ui = null
+	if _panel.visible:
+		close_station()
+	_update_lock.call_deferred()
+	var titles := {
+		"success": ["Миссия #%d выполнена!", C_GOOD], "crash": ["Миссия #%d: авария при посадке", C_BAD],
+		"aborted": ["Миссия #%d прервана, экипаж дома", Color(1.0, 0.85, 0.35)], "lost": ["Миссия #%d потеряна", C_BAD],
+	}
+	var tt: Array = titles.get(res["outcome"], titles["success"])
 	var p := PanelContainer.new()
 	p.anchor_left = 0.5
 	p.anchor_right = 0.5
 	p.anchor_top = 0.5
 	p.anchor_bottom = 0.5
-	p.offset_left = -320
-	p.offset_right = 320
-	p.offset_top = -170
-	p.offset_bottom = 150
+	p.offset_left = -340
+	p.offset_right = 340
+	p.offset_top = -210
+	p.offset_bottom = 190
 	add_child(p)
-	_launch_view = p
 	var v := VBoxContainer.new()
 	p.add_child(v)
-	v.add_child(_lbl("Миссия #%d: ракета «%s» отправлена к Луне!" % [mission["n"], mission["ship_name"]], 22, C_TITLE))
-	v.add_child(_lbl("Тип миссии: %s · топлива в баке %.1f т" % [mission["profile_name"], mission["tank_fuel"]], 15, C_TEXT))
-	var names: PackedStringArray = []
-	for id in mission["cargo"]:
-		names.append(D.MODULES[id]["name"])
-	v.add_child(_lbl("На борту: " + (", ".join(names) if not names.is_empty() else "ничего"), 14, C_DIM))
-	v.add_child(_lbl("Ожидаемые данные: %d" % mission["data"], 24, C_GOOD))
-	for line in mission["lines"]:
+	v.add_child(_lbl(tt[0] % res["n"], 24, tt[1]))
+	var where: String = (" · место посадки: " + res["site_name"]) if res["site_name"] != "" else ""
+	v.add_child(_lbl("«%s» · %s%s" % [res["ship_name"], res["profile_name"], where], 15, C_TEXT))
+	v.add_child(_lbl("Получено данных: %d" % res["data"], 24, C_GOOD if res["data"] > 0 else C_BAD))
+	for line in res["lines"]:
 		v.add_child(_lbl("· " + line, 13, C_DIM))
+	for f in res["faults"]:
+		v.add_child(_lbl("⚠ Поломка в полёте: " + f, 13, C_BAD))
+	v.add_child(_lbl("Астронавт вернулся на базу.", 13, C_TEXT))
 	v.add_child(_btn("Продолжить подготовку", p.queue_free))
 
 
@@ -545,5 +815,6 @@ func _show_final(summary: Dictionary) -> void:
 	v.add_child(_lbl("Всего отправлено к Луне: %d миссий" % summary["launched"].size(), 17, C_TEXT))
 	v.add_child(_lbl("Ожидаемый объём данных: %d" % summary["total_data"], 22, C_GOOD))
 	for m in summary["launched"]:
-		v.add_child(_lbl("#%d · день %d · «%s» · %s · данные %d" % [m["n"], m["day"], m["ship_name"], m["profile_name"], m["data"]], 14, C_DIM))
+		var where: String = (" · " + m["site"]) if m.get("site", "") != "" else ""
+		v.add_child(_lbl("#%d · день %d · «%s» · %s%s · данные %d" % [m["n"], m["day"], m["ship_name"], m["profile_name"], where, m["data"]], 14, C_DIM))
 	v.add_child(_btn("Закрыть", p.queue_free))

@@ -5,6 +5,7 @@ const F = preload("res://scripts/flight_data.gd")
 const FlightUI = preload("res://scripts/flight_ui.gd")
 const LaunchVideo = preload("res://scripts/launch_video.gd")
 const ShipDiagram = preload("res://scripts/ship_diagram.gd")
+const LOGO: Texture2D = preload("res://assets/image_2026-11-15_00-48-50.png")
 
 const C_TITLE := Color.WHITE
 const C_TEXT := Color(0.875, 0.875, 0.875)
@@ -820,6 +821,13 @@ func _show_final(summary: Dictionary) -> void:
 	v.custom_minimum_size = Vector2(720, 0)
 	v.add_theme_constant_override("separation", 10)
 	center.add_child(v)
+
+	var logo := TextureRect.new()
+	logo.texture = LOGO
+	logo.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	logo.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+	logo.custom_minimum_size = Vector2(0, LOGO.get_height())
+	v.add_child(logo)
 
 	var head := "MISSION LOG: DAY %d" % day
 	if summary.get("early", false):

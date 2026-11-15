@@ -22,6 +22,13 @@ BreakpointRuntimeBridge="*res://addons/breakpoint_mcp/runtime_bridge.gd"
 MissionState="*res://scripts/mission_state.gd"
 Music="*res://scripts/music.gd"
 
+[display]
+
+window/size/viewport_width=1152
+window/size/viewport_height=648
+window/stretch/mode="canvas_items"
+window/stretch/aspect="keep"
+
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/breakpoint_mcp/plugin.cfg")

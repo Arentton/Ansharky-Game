@@ -634,6 +634,7 @@ func _finish_flight() -> void:
 			m["data"] = res["data"]
 			m["status"] = res["outcome"]
 			m["site"] = res["site_name"]
+			m["site_id"] = fl["site"] if res["outcome"] == "success" else ""
 	st["total_data"] += res["data"]
 	st["money"] += res["money"]
 	st["flight"] = {}

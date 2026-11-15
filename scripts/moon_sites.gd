@@ -6,10 +6,12 @@ const F = preload("res://scripts/flight_data.gd")
 
 var selected := ""
 var marks: Dictionary = {}
+var flags: Array = []
 var interactive := true
 
 var _near: Texture2D = preload("res://assets/flight/moon_near.png")
 var _south: Texture2D = preload("res://assets/flight/moon_south.png")
+var _flag: Texture2D = preload("res://assets/flight/flag.png")
 var _hover := ""
 var _time := 0.0
 var _font: Font
@@ -69,8 +71,14 @@ func _draw() -> void:
 			for j in 16:
 				var a := TAU * j / 16.0
 				draw_rect(Rect2((p + Vector2(cos(a), sin(a)) * r - Vector2(1, 1)).floor(), Vector2(2, 2)), Color(1, 0.85, 0.3))
+		if flags.has(id):
+			var fs := _flag.get_size() * _px()
+			draw_texture_rect(_flag, Rect2((p + Vector2(1, -fs.y - 2)).floor(), fs), false)
 		if id == selected or id == _hover:
-			_label(p + Vector2(10, -8), F.SITES[id]["name"], Color(1, 1, 0.8), 13)
+			var name_text: String = F.SITES[id]["name"]
+			if flags.has(id):
+				name_text += " (landed here)"
+			_label(p + Vector2(10, -8), name_text, Color(1, 1, 0.8), 13)
 
 
 func _label(p: Vector2, text: String, col: Color, fsize: int) -> void:

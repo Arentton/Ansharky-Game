@@ -269,6 +269,11 @@ func _update_marks(fl: Dictionary) -> void:
 		elif _fits_priority(fl, id) != "":
 			marks[id] = "star"
 	_sites.marks = marks
+	var landed := []
+	for m in MissionState.state.get("launched", []):
+		if m.get("site_id", "") != "" and not landed.has(m["site_id"]):
+			landed.append(m["site_id"])
+	_sites.flags = landed
 
 
 func _fits_priority(fl: Dictionary, site_id: String) -> String:

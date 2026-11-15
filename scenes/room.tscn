@@ -1,40 +1,41 @@
-[gd_scene load_steps=36 format=3]
+[gd_scene load_steps=35 format=3 uid="uid://dv4rte6e71k"]
 
-[ext_resource type="Script" path="res://scripts/workstation.gd" id="ws"]
-[ext_resource type="Shader" path="res://shaders/outline.gdshader" id="outline"]
-[ext_resource type="Script" path="res://scripts/starfield_background.gd" id="stars"]
-[ext_resource type="Texture2D" path="res://assets/room/floor.png" id="tex_3"]
-[ext_resource type="Texture2D" path="res://assets/image_2026-11-14_21-59-41.png" id="tex_4"]
-[ext_resource type="Texture2D" path="res://assets/image_2026-11-15_01-03-54.png" id="tex_5"]
-[ext_resource type="Texture2D" path="res://assets/image_2026-11-15_01-04-39.png" id="tex_6"]
-[ext_resource type="Texture2D" path="res://assets/room/front_edge.png" id="tex_7"]
-[ext_resource type="Texture2D" path="res://assets/doc_2026-11-15_00-08-44.png" id="tex_8"]
-[ext_resource type="Texture2D" path="res://assets/image_2026-11-15_00-16-04.png" id="tex_9"]
-[ext_resource type="Texture2D" path="res://assets/image_2026-11-14_22-00-41.png" id="tex_10"]
-[ext_resource type="Texture2D" path="res://assets/image_2026-11-14_22-00-59.png" id="tex_11"]
-[ext_resource type="Texture2D" path="res://assets/image_2026-11-14_22-00-30.png" id="tex_12"]
-[ext_resource type="Texture2D" path="res://assets/room/spacesuit_station.png" id="tex_13"]
-[ext_resource type="Texture2D" path="res://assets/image_2026-11-15_00-28-30.png" id="tex_14"]
-[ext_resource type="Texture2D" path="res://assets/image_2026-11-14_22-03-22.png" id="tex_15"]
-[ext_resource type="Texture2D" path="res://assets/image_2026-11-14_22-01-17.png" id="tex_16"]
-[ext_resource type="Texture2D" path="res://assets/image_2026-11-14_22-03-08.png" id="tex_17"]
-[ext_resource type="Texture2D" path="res://assets/image_2026-11-14_22-01-39.png" id="tex_18"]
-
-[sub_resource type="ShaderMaterial" id="outline_mat"]
-shader = ExtResource("outline")
-shader_parameter/enabled = false
+[ext_resource type="Shader" uid="uid://1mlo0ye4w35w" path="res://shaders/outline.gdshader" id="outline"]
+[ext_resource type="Script" uid="uid://c2ls78qa0wx6l" path="res://scripts/starfield_background.gd" id="stars"]
+[ext_resource type="Texture2D" uid="uid://djpkcfp2um8gi" path="res://assets/room/floor.png" id="tex_3"]
+[ext_resource type="Texture2D" uid="uid://dnxpgbyp1lu0a" path="res://assets/image_2026-11-14_21-59-41.png" id="tex_4"]
+[ext_resource type="Texture2D" uid="uid://1vyrygajvqrv" path="res://assets/image_2026-11-15_01-03-54.png" id="tex_5"]
+[ext_resource type="Texture2D" uid="uid://dk4c4rk4255t1" path="res://assets/image_2026-11-15_01-04-39.png" id="tex_6"]
+[ext_resource type="Texture2D" uid="uid://erms1jax4qpo" path="res://assets/room/front_edge.png" id="tex_7"]
+[ext_resource type="Texture2D" uid="uid://dvfybjkfroigi" path="res://assets/doc_2026-11-15_00-08-44.png" id="tex_8"]
+[ext_resource type="Texture2D" uid="uid://ccknnlw3t4lfj" path="res://assets/image_2026-11-14_22-00-41.png" id="tex_10"]
+[ext_resource type="Texture2D" uid="uid://br8lggnwcn1jg" path="res://assets/image_2026-11-14_22-00-59.png" id="tex_11"]
+[ext_resource type="Texture2D" uid="uid://c8gvu4ufti1ht" path="res://assets/image_2026-11-14_22-00-30.png" id="tex_12"]
+[ext_resource type="Texture2D" uid="uid://nkqjn2i8fkgj" path="res://assets/room/spacesuit_station.png" id="tex_13"]
+[ext_resource type="Texture2D" uid="uid://bklnui26t4yeh" path="res://assets/image_2026-11-15_00-28-30.png" id="tex_14"]
+[ext_resource type="Texture2D" uid="uid://dpg3lgt8fi6ru" path="res://assets/image_2026-11-14_22-03-22.png" id="tex_15"]
+[ext_resource type="Texture2D" uid="uid://qge30u1q853d" path="res://assets/image_2026-11-14_22-01-17.png" id="tex_16"]
+[ext_resource type="Texture2D" uid="uid://3oi4t0pbi2g0" path="res://assets/image_2026-11-14_22-03-08.png" id="tex_17"]
+[ext_resource type="Texture2D" uid="uid://cwqou8a67usrh" path="res://assets/image_2026-11-14_22-01-39.png" id="tex_18"]
+[ext_resource type="Script" uid="uid://bgn51jnjeorw0" path="res://scripts/workstation.gd" id="ws"]
 
 [sub_resource type="ConvexPolygonShape2D" id="shape_1"]
 points = PackedVector2Array(-240, 60, 1120, 60, 1120, 164, -240, 164)
 
 [sub_resource type="ConvexPolygonShape2D" id="shape_2"]
-points = PackedVector2Array(26, 0, -79.0, 624, -260, 624, -260, 0)
+points = PackedVector2Array(26, 0, -79, 624, -260, 624, -260, 0)
 
 [sub_resource type="ConvexPolygonShape2D" id="shape_3"]
-points = PackedVector2Array(840, 0, 949.0, 624, 1140, 624, 1140, 0)
+points = PackedVector2Array(840, 0, 949, 624, 1140, 624, 1140, 0)
 
 [sub_resource type="ConvexPolygonShape2D" id="shape_4"]
 points = PackedVector2Array(-260, 608, 1140, 608, 1140, 680, -260, 680)
+
+[sub_resource type="ShaderMaterial" id="outline_mat"]
+shader = ExtResource("outline")
+shader_parameter/enabled = false
+shader_parameter/outline_color = Color(1, 0.86, 0.15, 1)
+shader_parameter/pulse_speed = 5.0
 
 [sub_resource type="RectangleShape2D" id="shape_5"]
 size = Vector2(456, 16)
@@ -49,7 +50,7 @@ size = Vector2(70, 16)
 size = Vector2(72, 16)
 
 [sub_resource type="RectangleShape2D" id="shape_9"]
-size = Vector2(164, 264)
+size = Vector2(85, 144)
 
 [sub_resource type="RectangleShape2D" id="shape_10"]
 size = Vector2(186, 16)
@@ -64,7 +65,7 @@ size = Vector2(94, 16)
 size = Vector2(186, 260)
 
 [sub_resource type="RectangleShape2D" id="shape_14"]
-size = Vector2(74, 16)
+size = Vector2(74, 28)
 
 [sub_resource type="RectangleShape2D" id="shape_15"]
 size = Vector2(278, 16)
@@ -102,63 +103,48 @@ z_index = -20
 texture_filter = 1
 position = Vector2(-120, 160)
 scale = Vector2(2, 2)
-centered = false
-flip_h = false
 texture = ExtResource("tex_3")
+centered = false
 
 [node name="BackWall" type="Sprite2D" parent="Walls"]
 z_index = -19
 texture_filter = 1
-position = Vector2(0, 0)
 scale = Vector2(2, 2)
-centered = false
-flip_h = false
 texture = ExtResource("tex_4")
+centered = false
 
 [node name="LeftWall" type="Sprite2D" parent="Walls"]
 z_index = -17
 texture_filter = 1
 position = Vector2(-176, 0)
 scale = Vector2(2, 2)
-centered = false
-flip_h = false
 texture = ExtResource("tex_5")
+centered = false
 
 [node name="RightWall" type="Sprite2D" parent="Walls"]
 z_index = -17
 texture_filter = 1
 position = Vector2(790, 0)
 scale = Vector2(2, 2)
+texture = ExtResource("tex_6")
 centered = false
 flip_h = true
-texture = ExtResource("tex_6")
 
 [node name="FrontEdge" type="Sprite2D" parent="Walls"]
 z_index = 10
 texture_filter = 1
 position = Vector2(-116, 610)
 scale = Vector2(2, 2)
-centered = false
-flip_h = false
 texture = ExtResource("tex_7")
+centered = false
 
 [node name="Door" type="Sprite2D" parent="Walls"]
 z_index = -18
 texture_filter = 1
-position = Vector2(59.0, 32)
+position = Vector2(59, 32)
 scale = Vector2(2, 2)
-centered = false
-flip_h = false
 texture = ExtResource("tex_8")
-
-[node name="NasaLogo" type="Sprite2D" parent="Walls"]
-z_index = -18
-texture_filter = 1
-position = Vector2(187.0, 6)
-scale = Vector2(2, 2)
 centered = false
-flip_h = false
-texture = ExtResource("tex_9")
 
 [node name="WallColliders" type="StaticBody2D" parent="."]
 
@@ -187,10 +173,10 @@ action_text = "Связаться с экипажем"
 [node name="Sprite2D" type="Sprite2D" parent="Props/DispatcherConsole"]
 texture_filter = 1
 material = SubResource("outline_mat")
-position = Vector2(-240.0, -66)
+position = Vector2(-240, -66)
 scale = Vector2(2, 2)
-centered = false
 texture = ExtResource("tex_10")
+centered = false
 
 [node name="Body" type="StaticBody2D" parent="Props/DispatcherConsole"]
 
@@ -202,7 +188,7 @@ shape = SubResource("shape_5")
 monitorable = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Props/DispatcherConsole/InteractArea"]
-position = Vector2(0, 29.0)
+position = Vector2(0, 29)
 shape = SubResource("shape_6")
 
 [node name="Hint" type="Label" parent="Props/DispatcherConsole"]
@@ -224,25 +210,25 @@ position = Vector2(600, 238)
 
 [node name="Sprite2D" type="Sprite2D" parent="Props/DispatcherChair"]
 texture_filter = 1
-position = Vector2(-31.0, -14)
+position = Vector2(-31, -14)
 scale = Vector2(2, 2)
-centered = false
 texture = ExtResource("tex_11")
+centered = false
 
 [node name="Radar" type="Node2D" parent="Props"]
 position = Vector2(350, 178)
 
 [node name="Sprite2D" type="Sprite2D" parent="Props/Radar"]
 texture_filter = 1
-position = Vector2(-49.0, -52)
+position = Vector2(-72, -53)
 scale = Vector2(2, 2)
-centered = false
 texture = ExtResource("tex_12")
+centered = false
 
 [node name="Body" type="StaticBody2D" parent="Props/Radar"]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Props/Radar/Body"]
-position = Vector2(0, 38)
+position = Vector2(-23, 37)
 shape = SubResource("shape_7")
 
 [node name="SpacesuitStation" type="Node2D" parent="Props"]
@@ -255,10 +241,10 @@ action_text = "Надеть скафандр"
 [node name="Sprite2D" type="Sprite2D" parent="Props/SpacesuitStation"]
 texture_filter = 1
 material = SubResource("outline_mat")
-position = Vector2(-44.0, -102)
+position = Vector2(141, -221)
 scale = Vector2(2, 2)
-centered = false
 texture = ExtResource("tex_13")
+centered = false
 
 [node name="Body" type="StaticBody2D" parent="Props/SpacesuitStation"]
 
@@ -270,7 +256,7 @@ shape = SubResource("shape_8")
 monitorable = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Props/SpacesuitStation/InteractArea"]
-position = Vector2(0, 4.0)
+position = Vector2(185.5, -145)
 shape = SubResource("shape_9")
 
 [node name="Hint" type="Label" parent="Props/SpacesuitStation"]
@@ -292,25 +278,24 @@ position = Vector2(140, 398)
 
 [node name="Sprite2D" type="Sprite2D" parent="Props/AnalystChair"]
 texture_filter = 1
-position = Vector2(-31.0, -26)
+position = Vector2(-31, -26)
 scale = Vector2(2, 2)
-centered = false
 texture = ExtResource("tex_14")
+centered = false
 
 [node name="AnalystDesk" type="Node2D" parent="Props"]
 position = Vector2(140, 478)
 script = ExtResource("ws")
-role = "analyst"
 station_name = "Станция анализа данных"
 action_text = "Анализировать данные"
 
 [node name="Sprite2D" type="Sprite2D" parent="Props/AnalystDesk"]
 texture_filter = 1
 material = SubResource("outline_mat")
-position = Vector2(-117.0, -72)
+position = Vector2(-117, -72)
 scale = Vector2(2, 2)
-centered = false
 texture = ExtResource("tex_15")
+centered = false
 
 [node name="Body" type="StaticBody2D" parent="Props/AnalystDesk"]
 
@@ -322,7 +307,7 @@ shape = SubResource("shape_10")
 monitorable = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Props/AnalystDesk/InteractArea"]
-position = Vector2(0, 22.0)
+position = Vector2(0, 22)
 shape = SubResource("shape_11")
 
 [node name="Hint" type="Label" parent="Props/AnalystDesk"]
@@ -349,10 +334,10 @@ action_text = "Починить систему"
 [node name="Sprite2D" type="Sprite2D" parent="Props/EngineerRack"]
 texture_filter = 1
 material = SubResource("outline_mat")
-position = Vector2(-71.0, -118)
+position = Vector2(-71, -118)
 scale = Vector2(2, 2)
-centered = false
 texture = ExtResource("tex_16")
+centered = false
 
 [node name="Body" type="StaticBody2D" parent="Props/EngineerRack"]
 
@@ -364,7 +349,7 @@ shape = SubResource("shape_12")
 monitorable = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Props/EngineerRack/InteractArea"]
-position = Vector2(0, 6.0)
+position = Vector2(0, 6)
 shape = SubResource("shape_13")
 
 [node name="Hint" type="Label" parent="Props/EngineerRack"]
@@ -386,15 +371,15 @@ position = Vector2(864, 498)
 
 [node name="Sprite2D" type="Sprite2D" parent="Props/Printer"]
 texture_filter = 1
-position = Vector2(-49.0, -48)
+position = Vector2(-49, -48)
 scale = Vector2(2, 2)
-centered = false
 texture = ExtResource("tex_17")
+centered = false
 
 [node name="Body" type="StaticBody2D" parent="Props/Printer"]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Props/Printer/Body"]
-position = Vector2(0, 38)
+position = Vector2(0, 32)
 shape = SubResource("shape_14")
 
 [node name="SideConsole" type="Node2D" parent="Props"]
@@ -402,10 +387,10 @@ position = Vector2(600, 554)
 
 [node name="Sprite2D" type="Sprite2D" parent="Props/SideConsole"]
 texture_filter = 1
-position = Vector2(-159.0, -62)
+position = Vector2(-159, -62)
 scale = Vector2(2, 2)
-centered = false
 texture = ExtResource("tex_18")
+centered = false
 
 [node name="Body" type="StaticBody2D" parent="Props/SideConsole"]
 

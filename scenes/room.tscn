@@ -47,7 +47,7 @@ size = Vector2(548, 214)
 size = Vector2(70, 16)
 
 [sub_resource type="RectangleShape2D" id="shape_8"]
-size = Vector2(72, 16)
+size = Vector2(79, 146)
 
 [sub_resource type="RectangleShape2D" id="shape_9"]
 size = Vector2(85, 144)
@@ -249,7 +249,7 @@ centered = false
 [node name="Body" type="StaticBody2D" parent="Props/SpacesuitStation"]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Props/SpacesuitStation/Body"]
-position = Vector2(0, 38)
+position = Vector2(185.5, -145)
 shape = SubResource("shape_8")
 
 [node name="InteractArea" type="Area2D" parent="Props/SpacesuitStation"]

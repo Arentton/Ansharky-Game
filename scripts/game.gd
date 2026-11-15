@@ -1,11 +1,6 @@
 extends Node2D
-## Игровая сцена: раздаёт персонажей игрокам согласно выбранным ролям.
-## Мой персонаж записывается в HighLevelNetworkHandler.my_character —
-## управлять клавишами можно только им, сменить персонажа нельзя.
-## Тестовый режим (ansharky в поле IP или запуск сцены через F6):
-## один игрок за роль, выбранную в меню; F9 — следующий день, F10 — ресурсы.
 
-## Куда астронавт возвращается после полёта (у шлюза со скафандром).
+const Blocking = preload("res://scripts/character_blocking.gd")
 const ASTRONAUT_RETURN := Vector2(445, 280)
 
 var ui: CanvasLayer
@@ -15,7 +10,10 @@ func _ready() -> void:
 	var net := HighLevelNetworkHandler
 	ui = preload("res://scripts/mission_ui.gd").new()
 	add_child(ui)
+	Blocking.setup(_characters())
+	Music.play("base")
 	MissionState.changed.connect(_sync_astronaut)
+	MissionState.changed.connect(_sync_music)
 	for ws in find_children("*", "Node2D"):
 		if ws is Workstation:
 			ws.used.connect(_on_station_used)
@@ -36,14 +34,12 @@ func _ready() -> void:
 	net.notify_scene_loaded()
 
 
-	
-
 func _on_match_started() -> void:
 	var net := HighLevelNetworkHandler
 	_set_sync_visible(true)
 	net.my_character = get_node_or_null(net.my_role())
-	print("[game] мой персонаж: ", net.my_character.name if net.my_character else "нет")
-	MissionState.start_campaign() 
+	print("[game] my character: ", net.my_character.name if net.my_character else "none")
+	MissionState.start_campaign()
 
 
 func _on_station_used(role: String) -> void:
@@ -81,6 +77,19 @@ func _exit_tree() -> void:
 	HighLevelNetworkHandler.my_character = null
 	HighLevelNetworkHandler.input_locked = false
 	MissionState.stop_campaign()
+
+
+func _characters() -> Array:
+	var out := []
+	for role in HighLevelNetworkHandler.ROLES:
+		var c := get_node_or_null(role)
+		if c is CharacterBody2D:
+			out.append(c)
+	return out
+
+
+func _sync_music() -> void:
+	Music.play_for_state(MissionState.state)
 
 
 func _set_sync_visible(v: bool) -> void:

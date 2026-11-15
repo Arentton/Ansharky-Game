@@ -1,14 +1,10 @@
 extends Control
-## Карта полёта Земля — Луна в пиксельном стиле: опорная орбита, движущаяся
-## Луна, траектория корабля, метеорные потоки и окно «У Луны» (приближение).
-## Диспетчер строит на ней разгон (mode = "plan"), астронавт следит за полётом
-## (mode = "view").
 
 signal theta_picked(theta: float)
 
 const F = preload("res://scripts/flight_data.gd")
 const T = preload("res://scripts/trajectory.gd")
-const PX := 4.0                              # размер «пикселя» больших спрайтов
+const PX := 4.0
 const METEOR_PATH := "res://assets/image_2026-11-15_10-11-26.png"
 
 const C_BG := Color("#05060d")
@@ -26,22 +22,21 @@ var phi0 := 0.0
 var theta := 0.0
 var traj: Dictionary = {}
 var hazards: Array = []
-var t_now := 0.0                # секунды полёта для корабля, Луны и потоков
-var auto_preview := true        # в режиме plan гонять предпросмотр по кругу
-var orbit_alt := 0.0            # высота орбиты у Луны (после торможения)
+var t_now := 0.0
+var auto_preview := true
+var orbit_alt := 0.0
 
 var _earth: Texture2D = preload("res://assets/flight/earth.png")
 var _moon: Texture2D = preload("res://assets/flight/moon_small.png")
 var _ship: Texture2D = preload("res://assets/flight/ship.png")
 var _meteor: Texture2D = load(METEOR_PATH)
-## Камни разных форм и размеров: [0] — метеорит из assets, дальше — по убыванию размера.
 var _rocks: Array[Texture2D] = [
 	_meteor,
 	preload("res://assets/flight/asteroid_0.png"), preload("res://assets/flight/asteroid_1.png"),
 	preload("res://assets/flight/asteroid_2.png"), preload("res://assets/flight/asteroid_3.png"),
 	preload("res://assets/flight/asteroid_4.png"),
 ]
-var _hz_layout := {}             # seed потока -> какие камни и как они разбросаны
+var _hz_layout := {}
 var _stars: Array = []
 var _time := 0.0
 var _font: Font
@@ -67,8 +62,6 @@ func _process(delta: float) -> void:
 			t_now = 0.0
 	queue_redraw()
 
-
-# --- Геометрия ----------------------------------------------------------------
 
 func _center() -> Vector2:
 	var inset_w := _inset_rect().size.x + 20.0
@@ -96,8 +89,6 @@ func _inset_rect() -> Rect2:
 	return Rect2(size.x - 216.0, 12.0, 204.0, 204.0)
 
 
-# --- Рисование ----------------------------------------------------------------
-
 func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), C_BG)
 	for s in _stars:
@@ -105,27 +96,25 @@ func _draw() -> void:
 		draw_rect(Rect2(Vector2(s[0] * size.x, s[1] * size.y).floor(), Vector2(s[2], s[2])), Color(1, 1, 0.85, a))
 	var c := _center()
 	_dotted_circle(c, F.MOON_DIST * _k(), C_ORBIT, 2.0, 2.0)
-	_label(c + Vector2(-F.MOON_DIST * _k() + 6, -6), "орбита Луны (384 400 км)", C_DIM, 12)
+	_label(c + Vector2(-F.MOON_DIST * _k() + 6, -6), "Moon's orbit (384,400 km)", C_DIM, 12)
 	for i in hazards.size():
 		_draw_hazard(i)
 	if not traj.is_empty():
 		_draw_trajectory()
-	# Земля и опорная орбита
 	var er := _earth_r()
 	_dotted_circle(c, er + 6.0, Color(0.5, 0.8, 1.0, 0.6), 2.0, 6.0)
 	draw_texture_rect(_earth, Rect2(c - Vector2(er, er), Vector2(er, er) * 2.0), false)
-	_label(c + Vector2(-22, er + 22), "ЗЕМЛЯ", C_TEXT, 13)
+	_label(c + Vector2(-22, er + 22), "EARTH", C_TEXT, 13)
 	if phase == "tli":
 		_draw_burn_marker(c, er + 6.0)
-	# Луна сейчас и в момент встречи
 	var mp := to_screen(T.moon_pos(phi0, t_now))
 	if mode == "plan" and not traj.is_empty() and float(traj["peri_alt"]) < F.PERI_REACH * 3.0:
 		var tp: float = traj["peri_t"]
 		_moon_arc(t_now, tp)
 		_draw_moon(to_screen(T.moon_pos(phi0, tp)), 0.35)
-		_label(to_screen(T.moon_pos(phi0, tp)) + Vector2(-40, -34), "Луна через %.1f сут" % (tp / F.DAY), C_DIM, 12)
+		_label(to_screen(T.moon_pos(phi0, tp)) + Vector2(-40, -34), "Moon in %.1f days" % (tp / F.DAY), C_DIM, 12)
 	_draw_moon(mp, 1.0)
-	_label(mp + Vector2(-16, 40), "ЛУНА", C_TEXT, 13)
+	_label(mp + Vector2(-16, 40), "MOON", C_TEXT, 13)
 	if not traj.is_empty() and phase not in ["tli", "orbit", "site", "landing"]:
 		_draw_ship(to_screen(T.sample(traj, "pts", t_now)), _ship_dir())
 	elif phase in ["orbit", "site", "landing"]:
@@ -164,10 +153,10 @@ func _draw_burn_marker(c: Vector2, r: float) -> void:
 	var p := c + dir * r
 	var blink := 0.6 + 0.4 * sin(_time * 6.0)
 	draw_rect(Rect2((p - Vector2(4, 4)).floor(), Vector2(8, 8)), Color(1.0, 0.6, 0.15, blink))
-	var pro := Vector2(-dir.y, dir.x) * -1.0   # направление движения по орбите (против часовой)
+	var pro := Vector2(-dir.y, dir.x) * -1.0
 	for j in range(1, 5):
 		draw_rect(Rect2((p + pro * (6.0 + j * 5.0) - Vector2(1, 1)).floor(), Vector2(3, 3)), Color(1.0, 0.75, 0.3, 0.9))
-	_label(p + dir * 12.0 + Vector2(-30, 0), "разгон", Color(1.0, 0.75, 0.3), 12)
+	_label(p + dir * 12.0 + Vector2(-30, 0), "burn", Color(1.0, 0.75, 0.3), 12)
 
 
 func _moon_arc(t0: float, t1: float) -> void:
@@ -203,20 +192,17 @@ func _draw_hazard(i: int) -> void:
 	var p := to_screen(T.hazard_pos(h, t_now))
 	var r: float = float(h["r"]) * _k()
 	_dotted_circle(p, r, Color(C_HAZARD, 0.55), 2.0, 5.0)
-	# траектория потока на сутки вперёд
 	for j in range(1, 7):
 		var q := to_screen(T.hazard_pos(h, t_now + j * F.DAY / 6.0))
 		draw_rect(Rect2((q - Vector2(1, 1)).floor(), Vector2(2, 2)), Color(C_HAZARD, 0.35))
-	# у каждого потока свой набор камней: главный и несколько мелких вокруг
 	var lay := _layout(h)
 	for rock in lay["rocks"]:
 		var a: float = rock["phase"] + _time * rock["speed"]
 		_draw_rock(p + Vector2(cos(a), sin(a)) * r * rock["dist"], rock)
 	_draw_rock(p, lay["main"])
-	_label(p + Vector2(-r * 0.6, -r - 6.0), "поток «%s»" % h["name"], Color(1.0, 0.6, 0.55), 12)
+	_label(p + Vector2(-r * 0.6, -r - 6.0), "'%s' stream" % h["name"], Color(1.0, 0.6, 0.55), 12)
 
 
-## Разброс камней потока — один раз на поток (по его seed), одинаково у всех игроков.
 func _layout(h: Dictionary) -> Dictionary:
 	var seed_v: int = int(h.get("seed", hash(h["name"])))
 	if _hz_layout.has(seed_v):
@@ -226,7 +212,7 @@ func _layout(h: Dictionary) -> Dictionary:
 	var main := _rock_spec(rng, int(h.get("art", rng.randi_range(0, 3))))
 	var rocks := []
 	for j in rng.randi_range(3, 5):
-		var spec := _rock_spec(rng, rng.randi_range(maxi(int(main["tex"]) + 1, 2), 5)) # спутники мельче главного
+		var spec := _rock_spec(rng, rng.randi_range(maxi(int(main["tex"]) + 1, 2), 5))
 		spec["dist"] = rng.randf_range(0.45, 0.95)
 		spec["phase"] = rng.randf() * TAU
 		spec["speed"] = rng.randf_range(0.15, 0.5) * (1.0 if rng.randf() < 0.5 else -1.0)
@@ -254,24 +240,23 @@ func _draw_inset() -> void:
 	var rect := _inset_rect()
 	draw_rect(rect, Color(0.02, 0.03, 0.07, 0.92))
 	draw_rect(rect, Color(0.45, 0.5, 0.7, 0.8), false, 2.0)
-	_label(rect.position + Vector2(8, 16), "У Луны (±9 000 км)", C_DIM, 12)
+	_label(rect.position + Vector2(8, 16), "Near the Moon (±9,000 km)", C_DIM, 12)
 	var mc := rect.get_center() + Vector2(0, 8)
 	var ki := 88.0 / 9000.0
 	var mr := F.R_MOON * ki
 	var ms := Vector2(mr, mr) * 2.0
 	draw_texture_rect(_moon, Rect2((mc - ms * 0.5).floor(), ms), false)
-	# направление на Землю
 	var to_earth := -T.moon_pos(phi0, t_now).normalized()
 	var ep := mc + Vector2(to_earth.x, -to_earth.y) * 80.0
 	draw_rect(Rect2((ep - Vector2(3, 3)).floor(), Vector2(6, 6)), Color(0.4, 0.7, 1.0))
-	_label(ep + Vector2(-18, -8), "Земля", Color(0.5, 0.75, 1.0), 11)
+	_label(ep + Vector2(-18, -8), "Earth", Color(0.5, 0.75, 1.0), 11)
 	if phase in ["orbit", "site", "landing"]:
 		var orr := (F.R_MOON + orbit_alt) * ki
 		_dotted_circle(mc, maxf(orr, mr + 3.0), Color(0.6, 1.0, 0.7, 0.8), 2.0, 8.0)
 		var a := _time * 1.5
 		var sp := mc + Vector2(cos(a), sin(a)) * maxf(orr, mr + 3.0)
 		draw_rect(Rect2((sp - Vector2(2, 2)).floor(), Vector2(5, 5)), Color(1, 1, 0.6))
-		_label(rect.position + Vector2(8, rect.size.y - 8), "орбита %d км" % roundi(orbit_alt), C_TEXT, 12)
+		_label(rect.position + Vector2(8, rect.size.y - 8), "orbit %d km" % roundi(orbit_alt), C_TEXT, 12)
 		return
 	if traj.is_empty():
 		return
@@ -295,7 +280,7 @@ func _draw_inset() -> void:
 	if pi_ < rel.size() and float(traj["peri_alt"]) < lim:
 		var pp := mc + Vector2(rel[pi_].x, -rel[pi_].y) * ki
 		draw_rect(Rect2((pp - Vector2(3, 3)).floor(), Vector2(6, 6)), Color(1, 0.85, 0.3))
-		var txt := "удар!" if traj["status"] == "impact" else "%d км" % roundi(float(traj["peri_alt"]))
+		var txt := "impact!" if traj["status"] == "impact" else "%d km" % roundi(float(traj["peri_alt"]))
 		_label(pp + Vector2(6, -6), txt, Color(1, 0.85, 0.3), 12)
 	var sq := T.sample(traj, "rel", t_now)
 	if absf(sq.x) < lim and absf(sq.y) < lim and phase != "tli":
@@ -316,8 +301,6 @@ func _label(p: Vector2, text: String, col: Color, fsize: int) -> void:
 	draw_string(_font, p + Vector2(1, 1), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize, Color(0, 0, 0, 0.8))
 	draw_string(_font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize, col)
 
-
-# --- Мышь: клик рядом с Землёй задаёт точку разгона ----------------------------
 
 func _gui_input(event: InputEvent) -> void:
 	if mode != "plan" or phase != "tli":

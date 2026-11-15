@@ -1,21 +1,18 @@
 class_name Workstation
 extends Node2D
-## Рабочее место. Пользоваться им может только один класс (role).
-## Когда персонаж этого класса подходит — объект обводится жёлтым,
-## по [E] (действие "interact") происходит взаимодействие.
 
 signal used(role: String)
 
 const ROLE_TITLES := {
-	"analyst": "Аналитик",
-	"astronaut": "Астронавт",
-	"dispatcher": "Диспетчер",
-	"engineer": "Инженер",
+	"analyst": "Analyst",
+	"astronaut": "Astronaut",
+	"dispatcher": "Dispatcher",
+	"engineer": "Engineer",
 }
 
 @export_enum("analyst", "astronaut", "dispatcher", "engineer") var role: String = "analyst"
-@export var station_name: String = "Рабочее место"
-@export var action_text: String = "Работать"
+@export var station_name: String = "Workstation"
+@export var action_text: String = "Work"
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var area: Area2D = $InteractArea
@@ -27,7 +24,6 @@ var _busy := false
 
 
 func _ready() -> void:
-	# У каждого места свой материал, чтобы обводка включалась независимо.
 	sprite.material = sprite.material.duplicate()
 	area.body_entered.connect(_on_body_entered)
 	area.body_exited.connect(_on_body_exited)
@@ -51,7 +47,6 @@ func _on_body_exited(body: Node2D) -> void:
 	_refresh()
 
 
-## Подсвечиваем только для персонажа, которым управляет этот игрок.
 func _is_local(body: Node) -> bool:
 	return HighLevelNetworkHandler.is_my_character(body)
 
@@ -66,7 +61,7 @@ func _refresh() -> void:
 		hint.modulate = Color(1.0, 0.9, 0.3)
 		hint.visible = true
 	elif not _others.is_empty():
-		hint.text = "%s: только %s" % [station_name, ROLE_TITLES.get(role, role)]
+		hint.text = "%s: %s only" % [station_name, ROLE_TITLES.get(role, role)]
 		hint.modulate = Color(0.75, 0.78, 0.9, 0.85)
 		hint.visible = true
 	else:
@@ -81,7 +76,7 @@ func _process(_delta: float) -> void:
 
 
 func interact() -> void:
-	used.emit(role) # окно станции — только у этого игрока
+	used.emit(role)
 	if _is_online():
 		_rpc_used.rpc()
 	else:

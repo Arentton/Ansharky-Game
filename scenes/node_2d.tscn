@@ -813,8 +813,7 @@ properties/2/spawn = true
 properties/2/replication_mode = 2
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_unr0g"]
-radius = 21.0
-height = 42.0
+radius = 12.0
 
 [node name="Node2D" type="Node2D"]
 y_sort_enabled = true
@@ -878,6 +877,7 @@ scale = Vector2(2, 2)
 sprite_frames = SubResource("SpriteFrames_4bto7")
 animation = &"idle_down_dispatcher"
 autoplay = "idle_down_dispatcher"
+frame_progress = 0.739155
 
 [node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="dispatcher"]
 replication_config = SubResource("SceneReplicationConfig_player")

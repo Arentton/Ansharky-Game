@@ -1,9 +1,4 @@
 extends RefCounted
-## Полёт к Луне: плоская ограниченная задача трёх тел (Земля, Луна, корабль).
-## Начало координат — центр Земли (учтено и то, что Луна тянет саму Землю).
-## Интегрирование — Рунге — Кутта 4-го порядка с переменным шагом, в двойной
-## точности. Один и тот же код строит предпросмотр у диспетчера и «настоящий»
-## полёт на сервере, поэтому они совпадают.
 
 const F = preload("res://scripts/flight_data.gd")
 
@@ -21,7 +16,6 @@ static func hazard_pos(h: Dictionary, t: float) -> Vector2:
 	return Vector2(float(h["x"]) + float(h["vx"]) * t, float(h["y"]) + float(h["vy"]) * t)
 
 
-## Ускорение корабля (км/с²) в точке x, y в момент t.
 static func _acc(x: float, y: float, t: float, phi0: float) -> PackedFloat64Array:
 	var a := phi0 + F.MOON_RATE * t
 	var mx := F.MOON_DIST * cos(a)
@@ -39,8 +33,6 @@ static func _acc(x: float, y: float, t: float, phi0: float) -> PackedFloat64Arra
 	])
 
 
-## Полёт после разгона с опорной орбиты в точке theta (рад) импульсом dv (км/с).
-## phi0 — положение Луны в момент разгона. hazards — метеорные потоки.
 static func simulate(phi0: float, theta: float, dv: float, hazards: Array = [], t_max: float = 691200.0) -> Dictionary:
 	var r0 := leo_radius()
 	var vc := sqrt(F.MU_EARTH / r0)
@@ -153,7 +145,6 @@ static func simulate(phi0: float, theta: float, dv: float, hazards: Array = [], 
 	}
 
 
-## Точка траектории в момент t (key: "pts" — от Земли, "rel" — от Луны).
 static func sample(traj: Dictionary, key: String, t: float) -> Vector2:
 	var ts: PackedFloat64Array = traj["ts"]
 	var arr: PackedVector2Array = traj[key]
@@ -169,7 +160,6 @@ static func sample(traj: Dictionary, key: String, t: float) -> Vector2:
 	return arr[i - 1].lerp(arr[i], k)
 
 
-## Скорость (км/с) относительно Земли в момент t.
 static func speed_at(traj: Dictionary, t: float) -> float:
 	var ts: PackedFloat64Array = traj["ts"]
 	var arr: PackedVector2Array = traj["pts"]
@@ -180,18 +170,15 @@ static func speed_at(traj: Dictionary, t: float) -> float:
 	return arr[i].distance_to(arr[i - 1]) / maxf(ts[i] - ts[i - 1], 1e-9)
 
 
-## Длительность перелёта до Луны в сутках.
 static func transit_days(traj: Dictionary) -> float:
 	return float(traj["peri_t"]) / F.DAY
 
 
-## Бюджет Δv (км/с) по запасу топлива.
 static func dv_budget(profile: String, margin: float) -> float:
 	var b := F.TLI_BUDGET + (0.0 if profile == "flyby" else F.LOI_BUDGET)
 	return b + clampf(margin, 0.0, 0.5) * F.MARGIN_DV
 
 
-## Выполнено ли требование неисправности «траекторного» типа.
 static func traj_req_ok(fault_id: String, traj: Dictionary) -> bool:
 	var days := transit_days(traj)
 	match fault_id:
@@ -204,7 +191,6 @@ static func traj_req_ok(fault_id: String, traj: Dictionary) -> bool:
 	return true
 
 
-## Выполнено ли требование неисправности для места посадки.
 static func site_req_ok(fault_id: String, site_id: String) -> bool:
 	var s: Dictionary = F.SITES[site_id]
 	match fault_id:
@@ -217,7 +203,6 @@ static func site_req_ok(fault_id: String, site_id: String) -> bool:
 	return true
 
 
-## Риск аварии при посадке (0..1) с учётом сломанных систем.
 static func crash_risk(site_id: String, broken: Array) -> float:
 	var slope := float(F.SITES[site_id]["slope"])
 	if broken.has("radar"):
@@ -225,7 +210,6 @@ static func crash_risk(site_id: String, broken: Array) -> float:
 	return 0.0 if slope <= F.SLOPE_LIMIT else 0.25
 
 
-## Проверка плана: ошибки блокируют манёвр, предупреждения — нет.
 static func evaluate(traj: Dictionary, profile: String, dv: float, budget: float, hazards: Array) -> Dictionary:
 	var errors: PackedStringArray = []
 	var warns: PackedStringArray = []
@@ -234,35 +218,34 @@ static func evaluate(traj: Dictionary, profile: String, dv: float, budget: float
 	var loi: float = 0.0 if flyby else maxf(float(traj["loi_dv"]), 0.0)
 	var dv_total := dv + loi
 	if traj["status"] == "impact":
-		errors.append("Траектория врезается в Луну")
+		errors.append("The trajectory hits the Moon")
 	elif peri > F.PERI_REACH:
-		errors.append("Корабль проходит мимо Луны")
+		errors.append("The ship misses the Moon")
 	else:
 		if peri < F.PERI_SAFE_MIN:
-			warns.append("Очень низко над Луной (%d км): опасно" % roundi(peri))
+			warns.append("Very low over the Moon (%d km): dangerous" % roundi(peri))
 		if flyby and not traj["free_return"]:
-			errors.append("Для пролёта нужна траектория свободного возврата — иначе экипаж не вернётся")
+			errors.append("A flyby needs a free-return trajectory, otherwise the crew won't come back")
 	if dv_total > budget + 0.0005:
-		errors.append("Не хватит топлива: нужно %.2f км/с, есть %.2f" % [dv_total, budget])
+		errors.append("Not enough fuel: need %.2f km/s, have %.2f" % [dv_total, budget])
 	for hit in traj["hazards"]:
 		var h: Dictionary = hazards[hit[0]]
-		warns.append("Пересекает метеорный поток «%s» через %.1f сут — риск пробоя %d%%" % [
+		warns.append("Crosses the '%s' meteor stream in %.1f days: puncture risk %d%%" % [
 			h["name"], float(hit[1]) / F.DAY, roundi(F.METEOR_HIT_CHANCE * 100)])
 	return {"ok": errors.is_empty(), "errors": errors, "warns": warns, "dv_total": dv_total, "loi": loi}
 
 
-## Подсказка, куда крутить, если корабль не встречается с Луной.
 static func hint(traj: Dictionary) -> String:
 	if traj["status"] == "impact":
-		return "Корабль врезается в Луну: немного измените точку разгона, чтобы пройти рядом."
+		return "The ship hits the Moon: shift the burn point slightly to pass close by."
 	if float(traj["peri_alt"]) <= F.PERI_REACH:
 		if not traj["free_return"]:
-			return "Для свободного возврата корабль должен обогнуть Луну с обратной стороны — попробуйте сдвинуть точку разгона на десятые доли градуса."
-		return "Отлично: Луна развернёт корабль обратно к Земле, даже если двигатель откажет."
+			return "For a free return the ship must swing around the far side of the Moon: try moving the burn point by tenths of a degree."
+		return "Excellent: the Moon will swing the ship back to Earth even if the engine fails."
 	if float(traj["apogee"]) < F.MOON_DIST - 20000.0:
-		return "Не хватает скорости, чтобы долететь до орбиты Луны — увеличьте Δv (W)."
+		return "Not enough speed to reach the Moon's orbit: increase Δv (W)."
 	if float(traj["cross_t"]) >= 0.0:
 		if float(traj["cross_ang"]) > 0.0:
-			return "Корабль приходит раньше Луны — поверните точку разгона назад (A)."
-		return "Луна уже ушла вперёд — поверните точку разгона вперёд (D)."
-	return "Измените точку разгона или Δv."
+			return "The ship arrives before the Moon: turn the burn point back (A)."
+		return "The Moon has already moved ahead: turn the burn point forward (D)."
+	return "Change the burn point or Δv."

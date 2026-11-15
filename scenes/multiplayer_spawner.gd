@@ -4,7 +4,7 @@ extends MultiplayerSpawner
 
 func _ready() -> void:
 	multiplayer.peer_connected.connect(spawn_player)
-	
+
 func spawn_player(id:int)-> void:
 	if !multiplayer.is_server(): return
 	var player : Node = network_player.instantiate()

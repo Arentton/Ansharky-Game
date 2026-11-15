@@ -1,5 +1,7 @@
 extends CharacterBody2D
 
+const Blocking = preload("res://scripts/character_blocking.gd")
+
 enum {
 	UP,
 	DOWN,
@@ -11,11 +13,10 @@ const SPEED = 300.0
 @onready var anim=$AnimatedSprite2D
 var idleDir = DOWN
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if not visible:
-		return # астронавт улетел к Луне
+		return
 	if not HighLevelNetworkHandler.is_my_character(self):
-		# Этим персонажем управляет другой игрок: позиция и анимация приходят по сети.
 		if not anim.is_playing():
 			anim.play()
 		return
@@ -49,8 +50,8 @@ func _physics_process(_delta: float) -> void:
 		elif idleDir==UP:
 			anim.play("idle_up_astronaut")
 		else:
-			# для LEFT flip_h уже включён — idle_right смотрит влево
 			anim.play("idle_right_astronaut")
 		velocity=Vector2(0,0)
 
+	velocity = Blocking.resolve(self, velocity, delta)
 	move_and_slide()

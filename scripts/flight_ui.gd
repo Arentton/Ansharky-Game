@@ -1,7 +1,4 @@
 extends CanvasLayer
-## Полёт к Луне на весь экран.
-## Диспетчер — ЦУП: строит разгон к Луне (TLI) и выбирает место посадки.
-## Астронавт — вид с борта: траектория, телеметрия и тревоги.
 
 signal closed
 signal prep_requested
@@ -16,8 +13,8 @@ const C_TITLE := Color.WHITE
 const C_TEXT := Color(0.875, 0.875, 0.875)
 const C_DIM := Color(0.6, 0.6, 0.6)
 const PHASE_NAMES := {
-	"tli": "на опорной орбите, ждём разгона", "coast": "перелёт к Луне", "return": "возвращение к Земле",
-	"orbit": "на орбите Луны", "site": "на орбите Луны, выбор места посадки", "landing": "посадка",
+	"tli": "in parking orbit, waiting for the burn", "coast": "en route to the Moon", "return": "returning to Earth",
+	"orbit": "in lunar orbit", "site": "in lunar orbit, choosing a landing site", "landing": "landing",
 }
 
 var role := "dispatcher"
@@ -67,8 +64,6 @@ func set_open(v: bool) -> void:
 		_on_changed()
 
 
-# --- Каркас ---------------------------------------------------------------------
-
 func _build() -> void:
 	var bg := ColorRect.new()
 	bg.color = Color(0.02, 0.025, 0.06, 0.98)
@@ -88,10 +83,10 @@ func _build() -> void:
 	_title = _lbl("", 18, C_TITLE)
 	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(_title)
-	head.add_child(_btn("Источники NASA", func(): _sources.visible = not _sources.visible))
+	head.add_child(_btn("NASA sources", func(): _sources.visible = not _sources.visible))
 	if role == "dispatcher":
-		head.add_child(_btn("Подготовка пуска", func(): prep_requested.emit()))
-	head.add_child(_btn("Закрыть [E]", func(): closed.emit()))
+		head.add_child(_btn("Launch prep", func(): prep_requested.emit()))
+	head.add_child(_btn("Close [E]", func(): closed.emit()))
 	var body := HBoxContainer.new()
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body.add_theme_constant_override("separation", 10)
@@ -128,20 +123,18 @@ func _build() -> void:
 	bg.add_child(_sources)
 	var sv := VBoxContainer.new()
 	_sources.add_child(sv)
-	sv.add_child(_lbl("Откуда данные в мини-игре", 18, C_TITLE))
+	sv.add_child(_lbl("Where the mini-game data comes from", 18, C_TITLE))
 	for s in F.SOURCES:
 		sv.add_child(_lbl("· " + s, 13, C_TEXT))
-	sv.add_child(_btn("Закрыть", func(): _sources.visible = false))
+	sv.add_child(_btn("Close", func(): _sources.visible = false))
 
-
-# --- Обновление -----------------------------------------------------------------
 
 func _on_changed() -> void:
 	var fl: Dictionary = _ms.state["flight"]
 	if fl.is_empty():
 		return
-	_title.text = "%s — миссия #%d «%s» · %s · %s" % [
-		"ЦУП" if role == "dispatcher" else "Борт", fl["n"], fl["ship_name"], fl["profile_name"], PHASE_NAMES.get(fl["phase"], "")]
+	_title.text = "%s: mission #%d '%s' · %s · %s" % [
+		"Mission Control" if role == "dispatcher" else "On board", fl["n"], fl["ship_name"], fl["profile_name"], PHASE_NAMES.get(fl["phase"], "")]
 	_map.phi0 = fl["phi0"]
 	_map.hazards = fl["hazards"]
 	_map.phase = fl["phase"]
@@ -195,8 +188,8 @@ func _rebuild_side(fl: Dictionary) -> void:
 	_dv_lbl = null
 	_astro = null
 	if role == "dispatcher" and _phase == "tli":
-		_side.add_child(_lbl("Шаг 1. Разгон к Луне (TLI)", 17, C_TITLE))
-		_side.add_child(_lbl("Корабль на опорной орбите 185 км. Выберите точку разгона на орбите и импульс Δv, чтобы корабль встретил Луну: она движется и за 3 дня пролетает почти 40°.", 13, C_DIM))
+		_side.add_child(_lbl("Step 1. Translunar injection (TLI)", 17, C_TITLE))
+		_side.add_child(_lbl("The ship is in a 185 km parking orbit. Pick the burn point on the orbit and the Δv impulse so the ship meets the Moon: it keeps moving and covers almost 40° in 3 days.", 13, C_DIM))
 		_angle_lbl = _lbl("", 15, C_TEXT)
 		_side.add_child(_angle_lbl)
 		var ar := HBoxContainer.new()
@@ -209,20 +202,20 @@ func _rebuild_side(fl: Dictionary) -> void:
 		for step in [-0.05, -0.01, -0.001, 0.001, 0.01, 0.05]:
 			dr.add_child(_btn(_signed(step), _push.bind(step)))
 		_side.add_child(dr)
-		_side.add_child(_lbl("Клавиши: A/D — точка разгона, W/S — Δv, Shift — точнее, Ctrl — грубее, Enter — выполнить. Клик рядом с Землёй — выбрать точку.", 12, C_DIM))
+		_side.add_child(_lbl("Keys: A/D burn point, W/S Δv, Shift finer, Ctrl coarser, Enter execute. Click near Earth to pick a point.", 12, C_DIM))
 		_info = _rich()
 		_side.add_child(_info)
-		_exec = _btn("ВЫПОЛНИТЬ РАЗГОН [Enter]", _execute)
+		_exec = _btn("EXECUTE BURN [Enter]", _execute)
 		_exec.custom_minimum_size = Vector2(0, 44)
 		_side.add_child(_exec)
 		_map.mode = "plan"
 		_recompute()
 	elif role == "dispatcher" and _phase == "site":
-		_side.add_child(_lbl("Шаг 3. Место посадки", 17, C_TITLE))
-		_side.add_child(_lbl("Корабль на орбите Луны. Выберите место по критериям NASA: склон, Солнце, связь с Землёй, научная цель. Учтите отчёт инженера о поломках!", 13, C_DIM))
+		_side.add_child(_lbl("Step 3. Landing site", 17, C_TITLE))
+		_side.add_child(_lbl("The ship is in lunar orbit. Choose a site using NASA criteria: slope, sunlight, Earth visibility, science target. Mind the engineer's damage report!", 13, C_DIM))
 		_info = _rich()
 		_side.add_child(_info)
-		_exec = _btn("ПОСАДКА [Enter]", _land)
+		_exec = _btn("LAND [Enter]", _land)
 		_exec.custom_minimum_size = Vector2(0, 44)
 		_side.add_child(_exec)
 		var grid := GridContainer.new()
@@ -254,7 +247,7 @@ func _rebuild_side(fl: Dictionary) -> void:
 			holder.resized.connect(func():
 				if is_instance_valid(_astro):
 					_astro.position.x = (holder.size.x - 192.0) * 0.5)
-			_side.add_child(_lbl("Камера в кабине — невесомость", 12, C_DIM))
+			_side.add_child(_lbl("Cabin camera: zero gravity", 12, C_DIM))
 			_side.add_child(cam)
 		_info = _rich()
 		_side.add_child(_info)
@@ -288,8 +281,6 @@ func _fits_priority(fl: Dictionary, site_id: String) -> String:
 				return F.PRIORITIES[p]["name"]
 	return ""
 
-
-# --- Мини-игра: разгон --------------------------------------------------------
 
 func _turn(step: float) -> void:
 	_theta = wrapf(_theta + step, 0.0, TAU)
@@ -362,8 +353,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
-# --- Тексты --------------------------------------------------------------------
-
 func _update_info() -> void:
 	var fl: Dictionary = _ms.state["flight"]
 	if fl.is_empty() or _info == null or not is_instance_valid(_info):
@@ -379,43 +368,43 @@ func _update_info() -> void:
 func _tli_text(fl: Dictionary) -> String:
 	if _traj.is_empty():
 		return ""
-	_angle_lbl.text = "Точка разгона: %.2f°  (Луна: %.1f°)" % [rad_to_deg(wrapf(_theta, 0.0, TAU)), rad_to_deg(wrapf(fl["phi0"], 0.0, TAU))]
-	_dv_lbl.text = "Импульс Δv: %.3f км/с" % _dv
+	_angle_lbl.text = "Burn point: %.2f°  (Moon: %.1f°)" % [rad_to_deg(wrapf(_theta, 0.0, TAU)), rad_to_deg(wrapf(fl["phi0"], 0.0, TAU))]
+	_dv_lbl.text = "Δv impulse: %.3f km/s" % _dv
 	var ev := T.evaluate(_traj, fl["profile"], _dv, fl["budget"], fl["hazards"])
 	_exec.disabled = not ev["ok"]
 	var s := ""
 	var peri: float = _traj["peri_alt"]
 	if _traj["status"] == "impact":
-		s += "Сближение: [color=#ff6b61]СТОЛКНОВЕНИЕ с Луной[/color]\n"
+		s += "Closest approach: [color=#ff6b61]COLLISION with the Moon[/color]\n"
 	elif peri > F.PERI_REACH:
-		s += "Сближение: [color=#ff6b61]промах, %s км[/color]\n" % _num(peri)
+		s += "Closest approach: [color=#ff6b61]miss, %s km[/color]\n" % _num(peri)
 	else:
 		var col := "#7ef08c" if peri >= F.PERI_SAFE_MIN and peri <= F.PERI_GOOD_MAX else "#ffd23f"
-		s += "Сближение: [color=%s]%s км над Луной[/color]\n" % [col, _num(peri)]
-		s += "Перелёт: %.2f сут\n" % T.transit_days(_traj)
-		s += "Свободный возврат: %s\n" % ("[color=#7ef08c]да — Луна развернёт корабль к Земле[/color]" if _traj["free_return"] else "[color=#ffb347]нет[/color]")
+		s += "Closest approach: [color=%s]%s km above the Moon[/color]\n" % [col, _num(peri)]
+		s += "Transit: %.2f days\n" % T.transit_days(_traj)
+		s += "Free return: %s\n" % ("[color=#7ef08c]yes, the Moon will swing the ship back to Earth[/color]" if _traj["free_return"] else "[color=#ffb347]no[/color]")
 		if fl["profile"] != "flyby":
-			s += "Торможение у Луны (LOI): %.2f км/с\n" % maxf(float(_traj["loi_dv"]), 0.0)
+			s += "Lunar orbit insertion (LOI): %.2f km/s\n" % maxf(float(_traj["loi_dv"]), 0.0)
 	var ok_dv: bool = ev["dv_total"] <= float(fl["budget"]) + 0.0005
-	s += "Δv всего: [color=%s]%.2f из %.2f км/с[/color] (запас топлива даёт больше)\n" % ["#7ef08c" if ok_dv else "#ff6b61", ev["dv_total"], fl["budget"]]
+	s += "Total Δv: [color=%s]%.2f of %.2f km/s[/color] (spare fuel gives more)\n" % ["#7ef08c" if ok_dv else "#ff6b61", ev["dv_total"], fl["budget"]]
 	for e in ev["errors"]:
 		s += "[color=#ff6b61]✗ %s[/color]\n" % e
 	for w in ev["warns"]:
 		s += "[color=#ffd23f]⚠ %s[/color]\n" % w
-	s += "\n[b]Отчёт инженера[/b]\n"
+	s += "\n[b]Engineer's report[/b]\n"
 	if not fl["weak_sent"]:
-		s += "[color=#999999]Инженер не передал отчёт — слабые места корабля неизвестны.[/color]\n"
+		s += "[color=#999999]The engineer hasn't sent a report, the ship's weak points are unknown.[/color]\n"
 	elif fl["weak"].is_empty():
-		s += "Слабых мест нет.\n"
+		s += "No weak points.\n"
 	else:
 		for id in fl["weak"]:
 			var f: Dictionary = F.FAULTS[id]
 			if f["kind"] == "trajectory":
 				var ok := T.traj_req_ok(id, _traj)
-				s += "[color=%s]%s %s (%s): нужна %s[/color]\n" % ["#7ef08c" if ok else "#ff6b61", "✓" if ok else "✗", f["name"], f["weak"], f["need"]]
+				s += "[color=%s]%s %s (%s): needs %s[/color]\n" % ["#7ef08c" if ok else "#ff6b61", "✓" if ok else "✗", f["name"], f["weak"], f["need"]]
 			else:
-				s += "· %s (%s) — учтите при выборе места посадки\n" % [f["name"], f["weak"]]
-	s += "\n[color=#9fb4ff]Подсказка: %s[/color]" % T.hint(_traj)
+				s += "· %s (%s): keep it in mind when choosing a landing site\n" % [f["name"], f["weak"]]
+	s += "\n[color=#9fb4ff]Hint: %s[/color]" % T.hint(_traj)
 	return s
 
 
@@ -424,60 +413,60 @@ func _site_text(fl: Dictionary) -> String:
 	var known: Array = fl["reported"]
 	var s := ""
 	if known.is_empty():
-		s += "[color=#999999]Поломок в отчёте инженера нет%s.[/color]\n" % ("" if fl["weak_sent"] else " (инженер ещё ничего не передал)")
+		s += "[color=#999999]No damage in the engineer's report%s.[/color]\n" % ("" if fl["weak_sent"] else " (the engineer hasn't sent anything yet)")
 	else:
-		s += "[b]Поломки по отчёту инженера:[/b]\n"
+		s += "[b]Damage per the engineer's report:[/b]\n"
 		for id in known:
-			s += "[color=#ff6b61]✗ %s: %s → нужно %s[/color]\n" % [F.FAULTS[id]["name"], F.FAULTS[id]["broken"], F.FAULTS[id]["need"]]
+			s += "[color=#ff6b61]✗ %s: %s → needs %s[/color]\n" % [F.FAULTS[id]["name"], F.FAULTS[id]["broken"], F.FAULTS[id]["need"]]
 	if _site == "":
-		return s + "\nВыберите место на карте или в списке. Жёлтые метки — подходят для приоритетов NASA, красные — опасны."
+		return s + "\nPick a site on the map or in the list. Yellow markers fit NASA priorities, red ones are dangerous."
 	var st: Dictionary = F.SITES[_site]
 	s += "\n[b]%s[/b] [color=#999999](%s)[/color]\n%s\n" % [st["name"], st["note"], st["desc"]]
 	var slope_lim := F.SLOPE_LIMIT_RADAR if known.has("radar") else F.SLOPE_LIMIT
-	s += "[color=%s]Склон %d° (норма ≤ %d°)[/color]\n" % ["#7ef08c" if float(st["slope"]) <= slope_lim else "#ff6b61", st["slope"], roundi(slope_lim)]
-	s += "[color=%s]Солнце %d%% времени[/color]\n" % ["#ff6b61" if known.has("power") and not T.site_req_ok("power", _site) else "#dddddd", st["light"]]
-	s += "[color=%s]Земля видна %d%% времени (связь)[/color]\n" % ["#ff6b61" if known.has("comms") and not T.site_req_ok("comms", _site) else "#dddddd", st["earth"]]
-	s += "Наука: %s\n" % F.site_tags_text(_site)
+	s += "[color=%s]Slope %d° (limit ≤ %d°)[/color]\n" % ["#7ef08c" if float(st["slope"]) <= slope_lim else "#ff6b61", st["slope"], roundi(slope_lim)]
+	s += "[color=%s]Sunlight %d%% of the time[/color]\n" % ["#ff6b61" if known.has("power") and not T.site_req_ok("power", _site) else "#dddddd", st["light"]]
+	s += "[color=%s]Earth visible %d%% of the time (comms)[/color]\n" % ["#ff6b61" if known.has("comms") and not T.site_req_ok("comms", _site) else "#dddddd", st["earth"]]
+	s += "Science: %s\n" % F.site_tags_text(_site)
 	var prio := _fits_priority(fl, _site)
 	if prio != "":
-		s += "[color=#ffd23f]★ Подходит для приоритета NASA «%s»[/color]\n" % prio
+		s += "[color=#ffd23f]★ Fits NASA priority '%s'[/color]\n" % prio
 	var risk := T.crash_risk(_site, known)
-	s += "Риск аварии при посадке: [color=%s]%d%%[/color]\n" % ["#7ef08c" if risk == 0.0 else "#ff6b61", roundi(risk * 100)]
+	s += "Landing crash risk: [color=%s]%d%%[/color]\n" % ["#7ef08c" if risk == 0.0 else "#ff6b61", roundi(risk * 100)]
 	return s
 
 
 func _telemetry_text(fl: Dictionary) -> String:
 	var s := ""
 	var t := _t
-	s += "Время полёта: %d сут %02d ч\n" % [int(t / F.DAY), int(fmod(t, F.DAY) / 3600.0)]
+	s += "Flight time: %d d %02d h\n" % [int(t / F.DAY), int(fmod(t, F.DAY) / 3600.0)]
 	if not _traj.is_empty() and _phase in ["coast", "return"]:
 		var p := T.sample(_traj, "pts", t)
-		s += "До Земли: %s км\n" % _num(maxf(p.length() - F.R_EARTH, 0.0))
-		s += "До Луны: %s км\n" % _num(maxf(p.distance_to(T.moon_pos(fl["phi0"], t)) - F.R_MOON, 0.0))
-		s += "Скорость: %.2f км/с\n" % T.speed_at(_traj, t)
+		s += "To Earth: %s km\n" % _num(maxf(p.length() - F.R_EARTH, 0.0))
+		s += "To the Moon: %s km\n" % _num(maxf(p.distance_to(T.moon_pos(fl["phi0"], t)) - F.R_MOON, 0.0))
+		s += "Speed: %.2f km/s\n" % T.speed_at(_traj, t)
 		if _phase == "coast":
-			s += "До Луны осталось: %.1f сут\n" % maxf((float(fl["sum"]["peri_t"]) - t) / F.DAY, 0.0)
+			s += "Time to the Moon: %.1f days\n" % maxf((float(fl["sum"]["peri_t"]) - t) / F.DAY, 0.0)
 	match _phase:
 		"tli":
-			s += "\nЦУП рассчитывает разгон к Луне. Держитесь!"
+			s += "\nMission Control is calculating the burn to the Moon. Hold on!"
 		"orbit":
-			s += "\nКорабль на орбите Луны, приборы собирают данные."
+			s += "\nThe ship is in lunar orbit, instruments are collecting data."
 		"site":
-			s += "\nЦУП выбирает место посадки."
+			s += "\nMission Control is choosing a landing site."
 		"landing":
-			s += "\nПосадочный модуль идёт на посадку: %s." % F.SITES.get(fl["site"], {"name": "?"})["name"]
+			s += "\nThe lander is descending: %s." % F.SITES.get(fl["site"], {"name": "?"})["name"]
 	var faults: Array = fl["faults"] if role == "astronaut" else []
 	if role == "dispatcher":
 		for id in fl["reported"]:
-			faults.append({"id": id, "cause": "по отчёту инженера"})
+			faults.append({"id": id, "cause": "per the engineer's report"})
 	if not faults.is_empty():
-		s += "\n\n[b]Тревоги на борту:[/b]\n"
+		s += "\n\n[b]Alarms on board:[/b]\n"
 		for f in faults:
 			s += "[color=#ff6b61]⚠ %s — %s[/color]\n" % [F.FAULTS[f["id"]]["name"], F.FAULTS[f["id"]]["broken"]]
 	elif role == "dispatcher" and fl["faults"].size() > 0:
-		s += "\n\n[color=#ffd23f]⚠ На борту что-то случилось — ждём отчёт инженера.[/color]"
+		s += "\n\n[color=#ffd23f]⚠ Something happened on board, waiting for the engineer's report.[/color]"
 	if role == "astronaut" and _in_hazard(fl):
-		s += "\n\n[color=#ff6b61]Метеорный поток за бортом! Держитесь крепче.[/color]"
+		s += "\n\n[color=#ff6b61]Meteor shower outside! Hold on tight.[/color]"
 	return s
 
 
@@ -490,8 +479,6 @@ func _in_hazard(fl: Dictionary) -> bool:
 			return true
 	return false
 
-
-# --- Помощники ------------------------------------------------------------------
 
 func _signed(v: float) -> String:
 	return ("+" if v > 0.0 else "−") + str(absf(v))

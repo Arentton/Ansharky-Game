@@ -1,9 +1,7 @@
 extends Control
-## Схема ракеты для инженера: жёлтым мигают слабые места, красным — поломки.
 
 const F = preload("res://scripts/flight_data.gd")
 const PX := 4.0
-## Участки схемы (в пикселях картинки rocket_schematic.png).
 const ZONES := {
 	"capsule": [Rect2(4, 7, 13, 9)],
 	"service": [Rect2(4, 16, 13, 8)],

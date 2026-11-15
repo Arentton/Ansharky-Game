@@ -1,5 +1,4 @@
 shader_type canvas_item;
-// Пиксельная обводка спрайта. Включается параметром `enabled`.
 
 uniform bool enabled = false;
 uniform vec4 outline_color : source_color = vec4(1.0, 0.86, 0.15, 1.0);

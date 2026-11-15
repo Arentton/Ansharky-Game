@@ -20,6 +20,7 @@ config/icon="res://icon.svg"
 HighLevelNetworkHandler="*res://scripts/high_level_network_handler.gd"
 BreakpointRuntimeBridge="*res://addons/breakpoint_mcp/runtime_bridge.gd"
 MissionState="*res://scripts/mission_state.gd"
+Music="*res://scripts/music.gd"
 
 [editor_plugins]
 

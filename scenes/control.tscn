@@ -77,7 +77,7 @@ theme_override_constants/separation = 10
 
 [node name="RoleTitle" type="Label" parent="Center/Menu/Panel/Layout/RolePanel"]
 layout_mode = 2
-text = "Выберите персонажа"
+text = "Choose your character"
 horizontal_alignment = 1
 
 [node name="RoleButtons" type="GridContainer" parent="Center/Menu/Panel/Layout/RolePanel"]
@@ -114,7 +114,7 @@ text = "engineer"
 [node name="RoleBack" type="Button" parent="Center/Menu/Panel/Layout/RolePanel"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Назад"
+text = "Back"
 
 [node name="JoinPanel" type="VBoxContainer" parent="Center/Menu/Panel/Layout"]
 unique_name_in_owner = true
@@ -124,7 +124,7 @@ theme_override_constants/separation = 10
 
 [node name="IpLabel" type="Label" parent="Center/Menu/Panel/Layout/JoinPanel"]
 layout_mode = 2
-text = "IP-адрес хоста"
+text = "Host IP address"
 
 [node name="IpEdit" type="LineEdit" parent="Center/Menu/Panel/Layout/JoinPanel"]
 unique_name_in_owner = true
@@ -134,7 +134,7 @@ placeholder_text = "127.0.0.1"
 
 [node name="JoinRoleLabel" type="Label" parent="Center/Menu/Panel/Layout/JoinPanel"]
 layout_mode = 2
-text = "Ваша роль"
+text = "Your role"
 
 [node name="JoinRoles" type="GridContainer" parent="Center/Menu/Panel/Layout/JoinPanel"]
 unique_name_in_owner = true
@@ -175,7 +175,7 @@ text = "engineer"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
-text = "Подключиться"
+text = "Connect"
 
 [node name="JoinStatus" type="Label" parent="Center/Menu/Panel/Layout/JoinPanel"]
 unique_name_in_owner = true
@@ -186,7 +186,7 @@ autowrap_mode = 3
 [node name="JoinBack" type="Button" parent="Center/Menu/Panel/Layout/JoinPanel"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Назад"
+text = "Back"
 
 [node name="LobbyPanel" type="VBoxContainer" parent="Center/Menu/Panel/Layout"]
 unique_name_in_owner = true
@@ -196,7 +196,7 @@ theme_override_constants/separation = 10
 
 [node name="LobbyTitle" type="Label" parent="Center/Menu/Panel/Layout/LobbyPanel"]
 layout_mode = 2
-text = "Комната"
+text = "Room"
 horizontal_alignment = 1
 
 [node name="PlayersLabel" type="Label" parent="Center/Menu/Panel/Layout/LobbyPanel"]
@@ -242,4 +242,4 @@ horizontal_alignment = 1
 [node name="LeaveButton" type="Button" parent="Center/Menu/Panel/Layout/LobbyPanel"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Выйти"
+text = "Leave"

@@ -1,10 +1,4 @@
 extends Control
-## Главное меню: Server -> выбор роли -> лобби; Client -> выбор роли + ввод IP -> лобби.
-## В тестовом режиме (ansharky в поле IP) играете одним персонажем выбранной роли.
-##
-## Для быстрого теста можно запускать с аргументами (после `--`):
-##   --host=<роль> [--port=N]      создать комнату с этой ролью
-##   --join=<ip[:порт]> [--role=<роль>]   подключиться и сразу занять роль
 
 const NET_ROLES := ["analyst", "astronaut", "dispatcher", "engineer"]
 
@@ -21,7 +15,6 @@ const NET_ROLES := ["analyst", "astronaut", "dispatcher", "engineer"]
 @onready var role_buttons: Container = %RoleButtons
 @onready var join_roles: Container = %JoinRoles
 
-## Роль, выбранная клиентом до подключения; запрашивается сразу после входа.
 var _auto_role := ""
 var _host_info: Label
 var _copy_button: Button
@@ -54,10 +47,11 @@ func _ready() -> void:
 	_build_host_info()
 
 	if net.is_online():
-		_show(lobby_panel) # вернулись в меню, оставаясь в комнате
+		_show(lobby_panel)
 		_refresh_lobby()
 	else:
 		_show(main_panel)
+	Music.play("menu")
 	_handle_cmdline.call_deferred()
 
 
@@ -66,20 +60,16 @@ func _show(panel: Control) -> void:
 		p.visible = p == panel
 
 
-# --- Server -------------------------------------------------------------------
-
 func _on_host_role_chosen(role: String, port: int = HighLevelNetworkHandler.DEFAULT_PORT) -> void:
 	var err := HighLevelNetworkHandler.start_server(role, port)
 	if err != OK:
 		_show(main_panel)
-		push_error("Не удалось создать сервер (порт %d занят?): %s" % [port, error_string(err)])
+		push_error("Could not create the server (is port %d in use?): %s" % [port, error_string(err)])
 		return
-	print("[menu] Сервер создан, роль хоста: ", role)
+	print("[menu] Server created, host role: ", role)
 	_show(lobby_panel)
 	_refresh_lobby()
 
-
-# --- Client -------------------------------------------------------------------
 
 func _on_client_pressed() -> void:
 	join_status.text = ""
@@ -92,7 +82,7 @@ func _on_client_pressed() -> void:
 func _on_join_role_chosen(role: String) -> void:
 	_auto_role = role
 	_update_join_roles()
-	if join_status.text == "Сначала выберите роль":
+	if join_status.text == "Choose a role first":
 		join_status.text = ""
 
 
@@ -103,36 +93,35 @@ func _update_join_roles() -> void:
 
 func _on_connect_pressed() -> void:
 	if not NET_ROLES.has(_auto_role):
-		join_status.text = "Сначала выберите роль"
+		join_status.text = "Choose a role first"
 		return
 	var ip := ip_edit.text.strip_edges()
 	if ip.to_lower() == "ansharky":
 		HighLevelNetworkHandler.start_test_mode(_auto_role)
 		return
 	var port := HighLevelNetworkHandler.DEFAULT_PORT
-	# Можно ввести «IP:порт», например 192.168.1.5:42069
 	if ip.count(":") == 1:
 		var parts := ip.split(":")
 		ip = parts[0]
 		if not parts[1].is_valid_int():
-			join_status.text = "Неверный порт"
+			join_status.text = "Invalid port"
 			return
 		port = parts[1].to_int()
 	if ip.is_empty():
 		ip = "127.0.0.1"
 	if not ip.is_valid_ip_address() and ip != "localhost":
-		join_status.text = "Неверный IP-адрес"
+		join_status.text = "Invalid IP address"
 		return
 	var err := HighLevelNetworkHandler.start_client(ip, port)
 	if err != OK:
-		join_status.text = "Ошибка: %s" % error_string(err)
+		join_status.text = "Error: %s" % error_string(err)
 		return
-	join_status.text = "Подключение к %s..." % ip
+	join_status.text = "Connecting to %s..." % ip
 	connect_button.disabled = true
 
 
 func _on_connection_succeeded() -> void:
-	print("[menu] Подключено к хосту")
+	print("[menu] Connected to host")
 	_show(lobby_panel)
 	_refresh_lobby()
 	if _auto_role != "":
@@ -141,17 +130,15 @@ func _on_connection_succeeded() -> void:
 
 func _on_connection_failed() -> void:
 	connect_button.disabled = false
-	join_status.text = "Не удалось подключиться"
+	join_status.text = "Could not connect"
 	_show(join_panel)
 
 
 func _on_server_closed() -> void:
 	connect_button.disabled = false
-	join_status.text = "Хост закрыл комнату или она заполнена"
+	join_status.text = "The host closed the room or it is full"
 	_show(join_panel)
 
-
-# --- Лобби --------------------------------------------------------------------
 
 func _on_leave_pressed() -> void:
 	HighLevelNetworkHandler.leave()
@@ -166,10 +153,10 @@ func _refresh_lobby() -> void:
 	ids.sort()
 	for pid in ids:
 		var role: String = net.players[pid]
-		var who := "Хост" if pid == 1 else "Игрок %d" % pid
+		var who := "Host" if pid == 1 else "Player %d" % pid
 		if pid == my_id:
-			who += " (вы)"
-		var role_text: String = net.ROLE_TITLES.get(role, "выбирает роль...")
+			who += " (you)"
+		var role_text: String = net.ROLE_TITLES.get(role, "choosing a role...")
 		lines.append("%s — %s" % [who, role_text])
 	players_label.text = "\n".join(lines)
 
@@ -183,14 +170,12 @@ func _refresh_lobby() -> void:
 
 	if mine == "":
 		if _auto_role != "" and net.is_role_taken(_auto_role):
-			lobby_status.text = "Роль «%s» уже занята — выберите другую" % net.ROLE_TITLES[_auto_role]
+			lobby_status.text = "The role '%s' is already taken, pick another one" % net.ROLE_TITLES[_auto_role]
 		else:
-			lobby_status.text = "Выберите свободную роль"
+			lobby_status.text = "Pick a free role"
 	else:
-		lobby_status.text = "Ожидание игроков: %d / %d" % [net.players.size(), net.MAX_PLAYERS]
+		lobby_status.text = "Waiting for players: %d / %d" % [net.players.size(), net.MAX_PLAYERS]
 
-
-# --- IP и порт хоста ----------------------------------------------------------
 
 func _build_host_info() -> void:
 	_host_info = Label.new()
@@ -200,7 +185,7 @@ func _build_host_info() -> void:
 	lobby_panel.add_child(_host_info)
 	lobby_panel.move_child(_host_info, 1)
 	_copy_button = Button.new()
-	_copy_button.text = "Копировать IP:порт"
+	_copy_button.text = "Copy IP:port"
 	_copy_button.pressed.connect(_on_copy_pressed)
 	lobby_panel.add_child(_copy_button)
 	lobby_panel.move_child(_copy_button, 2)
@@ -220,22 +205,20 @@ func _update_host_info() -> void:
 		return
 	var net := HighLevelNetworkHandler
 	var ips: PackedStringArray = net.get_local_ips()
-	var text := "Вы хост. Порт: %d\n" % net.port
+	var text := "You are the host. Port: %d\n" % net.port
 	if ips.is_empty():
-		text += "IP не найден — проверьте подключение к сети"
+		text += "No IP found, check your network connection"
 	else:
-		text += "IP для друзей: %s" % ips[0]
+		text += "IP for friends: %s" % ips[0]
 		if ips.size() > 1:
-			text += "\n(другие адреса: %s)" % ", ".join(ips.slice(1))
+			text += "\n(other addresses: %s)" % ", ".join(ips.slice(1))
 	_host_info.text = text
 
 
 func _on_copy_pressed() -> void:
 	DisplayServer.clipboard_set(_host_address())
-	_copy_button.text = "Скопировано: " + _host_address()
+	_copy_button.text = "Copied: " + _host_address()
 
-
-# --- Аргументы командной строки (для тестов) ----------------------------------
 
 func _handle_cmdline() -> void:
 	if HighLevelNetworkHandler.is_online():

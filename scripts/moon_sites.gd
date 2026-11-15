@@ -1,13 +1,11 @@
 extends Control
-## Карта мест посадки: видимая сторона Луны (LRO, NASA SVS) и южный полюс.
-## Клик по метке выбирает место.
 
 signal site_selected(id: String)
 
 const F = preload("res://scripts/flight_data.gd")
 
 var selected := ""
-var marks: Dictionary = {}       # id -> "bad" | "star" (подсветка)
+var marks: Dictionary = {}
 var interactive := true
 
 var _near: Texture2D = preload("res://assets/flight/moon_near.png")
@@ -52,9 +50,9 @@ func _draw() -> void:
 	var rs := _map_rect("south")
 	draw_texture_rect(_near, rn, false)
 	draw_texture_rect(_south, rs, false)
-	_label(rn.position + Vector2(0, -10), "Видимая сторона", Color(0.85, 0.87, 0.95), 14)
-	_label(rs.position + Vector2(0, -10), "Южный полюс (до 78° ю. ш.)", Color(0.85, 0.87, 0.95), 14)
-	_label(rs.position + Vector2(rs.size.x * 0.5 - 30, rs.size.y + 16), "↑ к Земле — вверху", Color(0.55, 0.58, 0.7), 12)
+	_label(rn.position + Vector2(0, -10), "Near side", Color(0.85, 0.87, 0.95), 14)
+	_label(rs.position + Vector2(0, -10), "South pole (to 78° S)", Color(0.85, 0.87, 0.95), 14)
+	_label(rs.position + Vector2(rs.size.x * 0.5 - 30, rs.size.y + 16), "↑ toward Earth: up", Color(0.55, 0.58, 0.7), 12)
 	for id in F.SITE_ORDER:
 		var p := site_pos(id)
 		var col := Color(1, 1, 1)

@@ -1,6 +1,4 @@
 extends CanvasLayer
-## Ролик пуска (assets/flight/launch.ogv — пиксельный пуск SLS и Orion)
-## на весь экран. Пробел, Esc, E или кнопка — пропустить.
 
 signal closed
 
@@ -34,7 +32,7 @@ func _ready() -> void:
 	player.finished.connect(_close)
 	player.play()
 	var skip := Button.new()
-	skip.text = "Пропустить ▶  [Пробел]"
+	skip.text = "Skip ▶  [Space]"
 	skip.anchor_left = 1.0
 	skip.anchor_right = 1.0
 	skip.anchor_top = 1.0

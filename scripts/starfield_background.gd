@@ -1,11 +1,9 @@
 @tool
 extends Control
-## Пиксельный фон «Мерцание звёзд» (перенос assets/Мерцание звёзд.html).
-## Сцена 519x522 растягивается на весь экран с сохранением пропорций (cover).
 
 const W := 519.0
 const H := 522.0
-const U := 4.0 # размер «пикселя» звезды
+const U := 4.0
 const YELLOW := Color("#fbf236")
 const LIGHT := Color("#fffb9f")
 const BIG: Array[String] = ["...Y...", "...Y...", "..YWY..", "YYWYWYY", "..YWY..", "...Y...", "...Y..."]
@@ -28,7 +26,7 @@ func _ready() -> void:
 		_stars.append({
 			"pos": Vector2(p[0], p[1]),
 			"shape": BIG if p[2] == 1 else SMALL,
-			"period": randf_range(1.5, 4.0), # секунды на цикл мерцания
+			"period": randf_range(1.5, 4.0),
 			"phase": randf() * TAU,
 		})
 
@@ -45,7 +43,7 @@ func _draw() -> void:
 	draw_set_transform(offset, 0.0, Vector2(k, k))
 	for s in _stars:
 		var v := (sin(_time * TAU / s.period + s.phase) + 1.0) / 2.0
-		var stepped := roundf(v * 4.0) / 4.0 # ступенчато, в пиксельном стиле
+		var stepped := roundf(v * 4.0) / 4.0
 		_draw_star(s, 0.15 + 0.85 * stepped)
 	draw_set_transform(Vector2.ZERO)
 

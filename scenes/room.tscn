@@ -167,8 +167,8 @@ y_sort_enabled = true
 position = Vector2(600, 178)
 script = ExtResource("ws")
 role = "dispatcher"
-station_name = "Пульт управления полётом"
-action_text = "Связаться с экипажем"
+station_name = "Flight control console"
+action_text = "Contact the crew"
 
 [node name="Sprite2D" type="Sprite2D" parent="Props/DispatcherConsole"]
 texture_filter = 1
@@ -202,7 +202,7 @@ offset_bottom = -56.0
 theme_override_colors/font_outline_color = Color(0.05, 0.06, 0.12, 1)
 theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 15
-text = "Пульт управления полётом"
+text = "Flight control console"
 horizontal_alignment = 1
 
 [node name="DispatcherChair" type="Node2D" parent="Props"]
@@ -235,8 +235,8 @@ shape = SubResource("shape_7")
 position = Vector2(60, 294)
 script = ExtResource("ws")
 role = "astronaut"
-station_name = "Шлюз и скафандр"
-action_text = "Надеть скафандр"
+station_name = "Airlock and spacesuit"
+action_text = "Put on the spacesuit"
 
 [node name="Sprite2D" type="Sprite2D" parent="Props/SpacesuitStation"]
 texture_filter = 1
@@ -270,7 +270,7 @@ offset_bottom = -106.0
 theme_override_colors/font_outline_color = Color(0.05, 0.06, 0.12, 1)
 theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 15
-text = "Шлюз и скафандр"
+text = "Airlock and spacesuit"
 horizontal_alignment = 1
 
 [node name="AnalystChair" type="Node2D" parent="Props"]
@@ -286,8 +286,8 @@ centered = false
 [node name="AnalystDesk" type="Node2D" parent="Props"]
 position = Vector2(140, 478)
 script = ExtResource("ws")
-station_name = "Станция анализа данных"
-action_text = "Анализировать данные"
+station_name = "Data analysis station"
+action_text = "Analyze data"
 
 [node name="Sprite2D" type="Sprite2D" parent="Props/AnalystDesk"]
 texture_filter = 1
@@ -321,15 +321,15 @@ offset_bottom = -70.0
 theme_override_colors/font_outline_color = Color(0.05, 0.06, 0.12, 1)
 theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 15
-text = "Станция анализа данных"
+text = "Data analysis station"
 horizontal_alignment = 1
 
 [node name="EngineerRack" type="Node2D" parent="Props"]
 position = Vector2(848, 384)
 script = ExtResource("ws")
 role = "engineer"
-station_name = "Серверная стойка"
-action_text = "Починить систему"
+station_name = "Server rack"
+action_text = "Repair the system"
 
 [node name="Sprite2D" type="Sprite2D" parent="Props/EngineerRack"]
 texture_filter = 1
@@ -363,7 +363,7 @@ offset_bottom = -102.0
 theme_override_colors/font_outline_color = Color(0.05, 0.06, 0.12, 1)
 theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 15
-text = "Серверная стойка"
+text = "Server rack"
 horizontal_alignment = 1
 
 [node name="Printer" type="Node2D" parent="Props"]

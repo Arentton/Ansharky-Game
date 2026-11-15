@@ -1,14 +1,10 @@
 class_name PlayerCharacter
 extends CharacterBody2D
-## Общий код персонажа. Управляет им только тот игрок, которому принадлежит
-## роль (multiplayer authority). Позиция и анимация синхронизируются через
-## дочерний MultiplayerSynchronizer.
 
 enum Dir { UP, DOWN, RIGHT, LEFT }
 
 const SPEED := 300.0
 
-## Включается, когда все игроки загрузили сцену.
 var active := false
 var idle_dir := Dir.DOWN
 
@@ -37,7 +33,6 @@ func _physics_process(_delta: float) -> void:
 
 
 func _process(_delta: float) -> void:
-	# У чужих персонажей анимация приходит по сети — просто проигрываем её.
 	if anim != null and not is_multiplayer_authority() and not anim.is_playing():
 		anim.play()
 

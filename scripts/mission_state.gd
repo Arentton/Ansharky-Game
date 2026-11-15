@@ -1,15 +1,7 @@
 extends Node
-## Общее состояние подготовки к полёту и самого полёта (автозагрузка MissionState).
-## Источник истины — сервер (хост). Клиенты присылают запросы через request(),
-## сервер проверяет их и рассылает всем новое состояние.
-## В тестовом режиме (без сети) всё выполняется локально.
-##
-## Полёт: пуск → ролик → диспетчер строит разгон к Луне (TLI) → перелёт
-## (поломки, метеорные потоки) → торможение у Луны → выбор места посадки →
-## итог. Пока идёт полёт, время кампании стоит.
 
-signal changed                       # состояние обновилось
-signal notified(text: String)        # всплывающее сообщение
+signal changed
+signal notified(text: String)
 signal launch_started(mission: Dictionary)
 signal flight_finished(result: Dictionary)
 signal campaign_finished(summary: Dictionary)
@@ -19,7 +11,7 @@ const F = preload("res://scripts/flight_data.gd")
 const T = preload("res://scripts/trajectory.gd")
 
 var state: Dictionary = {}
-var active := false                  # идёт ли кампания
+var active := false
 var _day_timer := 0.0
 var _countdown := -1.0
 var _sync_timer := 0.0
@@ -38,23 +30,20 @@ func _fresh_state() -> Dictionary:
 		"fuel_price": D.BASE_FUEL_PRICE, "metal_price": D.BASE_METAL_PRICE,
 		"event": "calm", "event_arg": "",
 		"ship": "", "cargo": [], "tank_fuel": 0.0, "profile": "orbit",
-		"warehouse": {},                # id модуля -> количество
+		"warehouse": {},
 		"crew_training": 0.0,
-		"daily_used": {},               # разовые действия за день: имя -> true
+		"daily_used": {},
 		"launching": false, "countdown": 0.0,
-		"launched": [],                 # отправленные миссии
-		"total_data": 0, "over": false,
-		"weak": [],                     # слабые места корабля в ангаре (видит инженер)
-		"weak_sent": false,             # инженер передал их диспетчеру
-		"priorities": [],               # приоритеты NASA для следующей миссии (видит аналитик)
-		"prio_sent": false,             # аналитик передал их инженеру
-		"flight": {},                   # текущий полёт (пусто — полёта нет)
+		"launched": [],
+		"total_data": 0, "over": false, "ending": "",
+		"weak": [],
+		"weak_sent": false,
+		"priorities": [],
+		"prio_sent": false,
+		"flight": {},
 	}
 
 
-# --- Запуск кампании ----------------------------------------------------------
-
-## Вызывается на сервере (или в тестовом режиме), когда игровая сцена готова.
 func start_campaign() -> void:
 	if not multiplayer.is_server():
 		return
@@ -65,15 +54,14 @@ func start_campaign() -> void:
 	_roll_event()
 	_roll_priorities()
 	_broadcast()
-	_notify("День 1. Окна запуска: дни %s" % ", ".join(D.LAUNCH_WINDOWS.map(func(d): return str(d))))
-	_notify_to_role("analyst", "Пришли приоритетные данные NASA для первой миссии — откройте станцию анализа.")
+	_notify("Day 1. Launch windows: days %s" % ", ".join(D.LAUNCH_WINDOWS.map(func(d): return str(d))))
+	_notify("Goal: deliver %d data to Earth before day %d ends." % [D.DATA_GOAL, D.DAYS])
+	_notify_to_role("analyst", "NASA priority data for the first mission has arrived. Open the analysis station.")
 
 
 func stop_campaign() -> void:
 	active = false
 
-
-# --- Читы тестового режима ----------------------------------------------------
 
 func debug_next_day() -> void:
 	if active and not _online():
@@ -84,7 +72,7 @@ func debug_resources() -> void:
 	if active and not _online():
 		state["money"] += 200
 		state["metal"] += 100
-		_notify("ТЕСТ: +200 М$, +100 т металла")
+		_notify("TEST: +200 M$, +100 t of metal")
 		_broadcast()
 
 
@@ -93,7 +81,7 @@ func _process(delta: float) -> void:
 		return
 	var flying: bool = not state["flight"].is_empty()
 	if flying:
-		_process_flight(delta) # пока идёт полёт, дни на Земле не идут
+		_process_flight(delta)
 	else:
 		_day_timer -= delta
 		state["time_left"] = max(_day_timer, 0.0)
@@ -121,13 +109,12 @@ func _next_day() -> void:
 	state["money"] += D.MONEY_INCOME
 	state["metal"] += D.METAL_INCOME
 	_roll_event()
-	var window := "окно запуска ОТКРЫТО" if D.LAUNCH_WINDOWS.has(int(state["day"])) else "окна запуска нет"
-	_notify("День %d: +%d М$, +%d т металла, %s." % [state["day"], D.MONEY_INCOME, D.METAL_INCOME, window])
+	var window := "launch window OPEN" if D.LAUNCH_WINDOWS.has(int(state["day"])) else "no launch window"
+	_notify("Day %d: +%d M$, +%d t of metal, %s." % [state["day"], D.MONEY_INCOME, D.METAL_INCOME, window])
 	_broadcast()
 
 
 func _roll_event() -> void:
-	# Цены каждый день немного плавают.
 	state["fuel_price"] = snappedf(D.BASE_FUEL_PRICE * _rng.randf_range(0.85, 1.15), 0.01)
 	state["metal_price"] = snappedf(D.BASE_METAL_PRICE * _rng.randf_range(0.85, 1.15), 0.01)
 	var total := 0
@@ -159,7 +146,7 @@ func _roll_event() -> void:
 			state["fuel_price"] = snappedf(state["fuel_price"] * 0.6, 0.01)
 		"metal_sale":
 			state["metal_price"] = snappedf(state["metal_price"] * 0.6, 0.01)
-	_notify("Событие: " + event_text())
+	_notify("Event: " + event_text())
 
 
 func event_text() -> String:
@@ -169,20 +156,27 @@ func event_text() -> String:
 	return t
 
 
-func _finish() -> void:
+func _finish(early := false) -> void:
+	if state["over"]:
+		return
 	state["over"] = true
-	state["time_left"] = 0.0
+	state["launching"] = false
+	_countdown = -1.0
+	state["ending"] = D.ending_for(int(state["total_data"]))
+	if not early:
+		state["time_left"] = 0.0
 	_broadcast()
-	var summary := {"total_data": state["total_data"], "launched": state["launched"]}
+	var summary := {
+		"ending": state["ending"], "early": early,
+		"day": state["day"], "days": D.DAYS, "goal": D.DATA_GOAL,
+		"total_data": state["total_data"], "launched": state["launched"],
+	}
 	if _online():
 		_rpc_finished.rpc(summary)
 	else:
 		_rpc_finished(summary)
 
 
-# --- Запросы от игроков -------------------------------------------------------
-
-## Выполнить действие. role — роль, от имени которой оно делается.
 func request(action: String, args: Array = []) -> void:
 	if multiplayer.is_server():
 		_apply(action, args, _my_role())
@@ -200,11 +194,10 @@ func _rpc_request(action: String, args: Array) -> void:
 
 func _my_role() -> String:
 	if HighLevelNetworkHandler.test_mode:
-		return "" # тестовый режим: можно всё
+		return ""
 	return HighLevelNetworkHandler.my_role()
 
 
-## Какая роль имеет право на действие.
 const ACTION_ROLES := {
 	"buy_ship": "analyst", "sell_ship": "analyst", "buy_metal": "analyst", "report": "analyst",
 	"send_prio": "analyst",
@@ -227,24 +220,21 @@ func _apply(action: String, args: Array, role: String) -> void:
 	_broadcast()
 
 
-## Скидка инженеру на приборы из приоритетов NASA (если аналитик их передал).
 func prio_discount(module_id: String) -> bool:
 	return state.get("prio_sent", false) and F.module_is_priority(module_id, state.get("priorities", []))
 
 
-## Возвращает текст ошибки или "".
 func _do(action: String, args: Array) -> String:
 	var st := state
 	var locked: bool = st["launching"]
 	match action:
-		# --- Аналитик ---
 		"buy_ship":
 			var id: String = args[0]
 			if st["ship"] != "":
-				return "В ангаре уже стоит корабль — сначала запустите или продайте его"
+				return "There is already a ship in the hangar: launch or sell it first"
 			var cost := D.ship_cost(id, st)
 			if st["money"] < cost:
-				return "Не хватает денег: нужно %d М$" % cost
+				return "Not enough money: need %d M$" % cost
 			st["money"] -= cost
 			st["ship"] = id
 			st["ship_paid"] = cost
@@ -254,17 +244,17 @@ func _do(action: String, args: Array) -> String:
 			st["weak_sent"] = false
 			if D.SHIPS[id]["perks"].get("no_landing", false) and D.PROFILES[st["profile"]]["surface"]:
 				st["profile"] = "orbit"
-			_notify("Куплен корабль «%s» за %d М$" % [D.SHIPS[id]["name"], cost])
-			_notify_to_role("engineer", "Новый корабль в ангаре — проведите диагностику на серверной стойке.")
+			_notify("Bought the '%s' ship for %d M$" % [D.SHIPS[id]["name"], cost])
+			_notify_to_role("engineer", "New ship in the hangar: run diagnostics at the server rack.")
 		"sell_ship":
 			if st["ship"] == "" or locked:
-				return "Нечего продавать"
+				return "Nothing to sell"
 			var refund := roundi(st.get("ship_paid", D.SHIPS[st["ship"]]["cost"]) * D.SELL_SHIP_REFUND)
 			for id in st["cargo"]:
 				_add_wh(id, 1)
 			st["fuel"] += st["tank_fuel"]
 			st["money"] += refund
-			_notify("Корабль «%s» продан за %d М$, груз и топливо вернулись на склад" % [D.SHIPS[st["ship"]]["name"], refund])
+			_notify("Sold the '%s' ship for %d M$, cargo and fuel went back to storage" % [D.SHIPS[st["ship"]]["name"], refund])
 			st["ship"] = ""
 			st["cargo"] = []
 			st["tank_fuel"] = 0.0
@@ -274,45 +264,44 @@ func _do(action: String, args: Array) -> String:
 			var amount: int = args[0]
 			var cost := ceili(amount * st["metal_price"])
 			if st["money"] < cost:
-				return "Не хватает денег: нужно %d М$" % cost
+				return "Not enough money: need %d M$" % cost
 			st["money"] -= cost
 			st["metal"] += amount
 		"report":
 			if st["daily_used"].has("report"):
-				return "Отчёт спонсорам уже был сегодня"
+				return "The sponsor report was already filed today"
 			st["daily_used"]["report"] = true
 			var gain := 5 + int(st["total_data"] / 20)
 			st["money"] += gain
-			_notify("Отчёт спонсорам: +%d М$ (чем больше данных собрано, тем щедрее)" % gain)
+			_notify("Sponsor report: +%d M$ (the more data collected, the more generous)" % gain)
 		"send_prio":
 			if st["priorities"].is_empty():
-				return "Приоритетов пока нет"
+				return "No priorities yet"
 			if st["prio_sent"]:
 				return ""
 			st["prio_sent"] = true
-			_notify("Аналитик передал инженеру приоритеты NASA: %s. Приборы для них дешевле на %d%%." % [
+			_notify("The analyst sent NASA priorities to the engineer: %s. Instruments for them are %d%% cheaper." % [
 				_prio_names(st["priorities"]), roundi((1.0 - F.PRIORITY_DISCOUNT) * 100)])
-		# --- Инженер ---
 		"build":
 			var id: String = args[0]
 			var cost := D.module_cost(id, st["event"], prio_discount(id))
 			if st["metal"] < cost:
-				return "Не хватает металла: нужно %d т" % cost
+				return "Not enough metal: need %d t" % cost
 			st["metal"] -= cost
 			_add_wh(id, 1)
 		"scrap":
 			var id: String = args[0]
 			if st["warehouse"].get(id, 0) <= 0:
-				return "Такого модуля нет на складе"
+				return "No such module in storage"
 			_add_wh(id, -1)
 			st["metal"] += floori(D.MODULES[id]["metal"] * D.SCRAP_MODULE_REFUND)
 		"salvage":
 			if st["daily_used"].has("salvage"):
-				return "Металлолом сегодня уже собран"
+				return "Scrap metal was already collected today"
 			st["daily_used"]["salvage"] = true
 			var gain := _rng.randi_range(4, 10)
 			st["metal"] += gain
-			_notify("Инженер собрал металлолом: +%d т" % gain)
+			_notify("The engineer collected scrap metal: +%d t" % gain)
 		"send_report":
 			var fl: Dictionary = st["flight"]
 			if not fl.is_empty():
@@ -321,87 +310,85 @@ func _do(action: String, args: Array) -> String:
 					known.append(f["id"])
 				fl["reported"] = known
 				fl["weak_sent"] = true
-				var txt := "поломок нет" if known.is_empty() else _fault_names(known)
-				_notify("Инженер передал диспетчеру телеметрию миссии #%d: %s." % [fl["n"], txt])
+				var txt := "no damage" if known.is_empty() else _fault_names(known)
+				_notify("The engineer sent mission #%d telemetry to the dispatcher: %s." % [fl["n"], txt])
 			elif st["ship"] != "":
 				st["weak_sent"] = true
-				var txt := "слабых мест нет" if st["weak"].is_empty() else "слабые места — " + _fault_names(st["weak"])
-				_notify("Инженер передал диспетчеру отчёт по «%s»: %s." % [D.SHIPS[st["ship"]]["name"], txt])
+				var txt := "no weak points" if st["weak"].is_empty() else "weak points: " + _fault_names(st["weak"])
+				_notify("The engineer sent the dispatcher a report on '%s': %s." % [D.SHIPS[st["ship"]]["name"], txt])
 			else:
-				return "Нечего передавать: в ангаре нет корабля"
-		# --- Астронавт ---
+				return "Nothing to send: no ship in the hangar"
 		"load":
 			var id: String = args[0]
 			if st["ship"] == "" or locked:
-				return "Нет корабля для погрузки"
+				return "No ship to load"
 			if st["warehouse"].get(id, 0) <= 0:
-				return "Такого модуля нет на складе"
+				return "No such module in storage"
 			var stats := D.ship_stats(st["ship"], st["cargo"])
 			if stats["cargo"] + D.MODULES[id]["mass"] > stats["payload"] + 0.001:
-				return "Не влезет: грузоподъёмность %.0f т" % stats["payload"]
+				return "Won't fit: payload capacity %.0f t" % stats["payload"]
 			_add_wh(id, -1)
 			st["cargo"].append(id)
 		"unload":
 			var id: String = args[0]
 			if locked or not st["cargo"].has(id):
-				return "Такого модуля нет на борту"
+				return "No such module on board"
 			st["cargo"].erase(id)
 			_add_wh(id, 1)
 			_clamp_tank()
 		"train":
 			if st["daily_used"].has("train"):
-				return "Экипаж сегодня уже тренировался"
+				return "The crew has already trained today"
 			if st["crew_training"] >= 0.3:
-				return "Экипаж натренирован на максимум"
+				return "The crew is fully trained"
 			st["daily_used"]["train"] = true
 			st["crew_training"] = snappedf(st["crew_training"] + 0.05, 0.01)
-			_notify("Тренировка экипажа: бонус экипажа ×%.2f" % (1.4 + st["crew_training"]))
-		# --- Диспетчер ---
+			_notify("Crew training: crew bonus ×%.2f" % (1.4 + st["crew_training"]))
 		"profile":
 			var id: String = args[0]
 			if locked:
-				return "Идёт пуск"
+				return "Launch in progress"
 			if st["ship"] != "" and D.SHIPS[st["ship"]]["perks"].get("no_landing", false) and D.PROFILES[id]["surface"]:
-				return "«%s» не умеет садиться" % D.SHIPS[st["ship"]]["name"]
+				return "'%s' cannot land" % D.SHIPS[st["ship"]]["name"]
 			st["profile"] = id
 		"buy_fuel":
 			var amount: int = args[0]
 			var cost := ceili(amount * st["fuel_price"])
 			if st["money"] < cost:
-				return "Не хватает денег: нужно %d М$" % cost
+				return "Not enough money: need %d M$" % cost
 			st["money"] -= cost
 			st["fuel"] += amount
 		"refuel":
 			var amount: float = args[0]
 			if st["ship"] == "" or locked:
-				return "Нет корабля"
+				return "No ship"
 			var stats := D.ship_stats(st["ship"], st["cargo"])
 			var room: float = stats["tank"] - st["tank_fuel"]
 			var take: float = min(amount, room, float(st["fuel"]))
 			if take <= 0.0:
-				return "Бак полон" if room <= 0.0 else "На складе нет топлива"
+				return "Tank is full" if room <= 0.0 else "No fuel in storage"
 			st["tank_fuel"] = snappedf(st["tank_fuel"] + take, 0.1)
 			st["fuel"] = snappedf(st["fuel"] - take, 0.1)
 		"drain":
 			if st["ship"] == "" or locked or st["tank_fuel"] <= 0.0:
-				return "Сливать нечего"
+				return "Nothing to drain"
 			var amount: float = min(float(args[0]), float(st["tank_fuel"]))
 			st["tank_fuel"] = snappedf(st["tank_fuel"] - amount, 0.1)
 			st["fuel"] = snappedf(st["fuel"] + amount, 0.1)
 		"launch":
 			var problems := D.launch_problems(st)
 			if not problems.is_empty():
-				return "Пуск невозможен: " + problems[0]
+				return "Launch impossible: " + problems[0]
 			st["launching"] = true
 			_countdown = D.LAUNCH_COUNTDOWN
 			st["countdown"] = _countdown
-			_notify("ПУСК! Обратный отсчёт %d секунд..." % D.LAUNCH_COUNTDOWN)
+			_notify("LAUNCH! Countdown %d seconds..." % D.LAUNCH_COUNTDOWN)
 		"abort":
 			if not locked:
 				return ""
 			st["launching"] = false
 			_countdown = -1.0
-			_notify("Пуск отменён диспетчером")
+			_notify("Launch aborted by the dispatcher")
 		"flight_tli":
 			return _flight_tli(float(args[0]), float(args[1]))
 		"flight_site":
@@ -416,7 +403,6 @@ func _add_wh(id: String, n: int) -> void:
 		wh.erase(id)
 
 
-## Если сняли бак — лишнее топливо возвращается на склад.
 func _clamp_tank() -> void:
 	if state["ship"] == "":
 		return
@@ -431,7 +417,7 @@ func _do_launch() -> void:
 	st["launching"] = false
 	var problems := D.launch_problems(st)
 	if not problems.is_empty():
-		_notify("Пуск сорван: " + problems[0])
+		_notify("Launch scrubbed: " + problems[0])
 		return
 	var fc := D.forecast(st)
 	var ship: Dictionary = D.SHIPS[st["ship"]]
@@ -453,16 +439,14 @@ func _do_launch() -> void:
 	st["tank_fuel"] = 0.0
 	st["weak"] = []
 	st["weak_sent"] = false
-	_roll_priorities() # приоритеты для следующей миссии приходят аналитику уже на этапе пуска
+	_roll_priorities()
 	_broadcast()
 	if _online():
 		_rpc_launch.rpc(mission)
 	else:
 		_rpc_launch(mission)
-	_notify_to_role("analyst", "NASA прислало приоритеты для следующей миссии: %s." % _prio_names(st["priorities"]))
+	_notify_to_role("analyst", "NASA sent priorities for the next mission: %s." % _prio_names(st["priorities"]))
 
-
-# --- Полёт ---------------------------------------------------------------------
 
 func _new_flight(mission: Dictionary, fc: Dictionary) -> Dictionary:
 	var st := state
@@ -487,12 +471,11 @@ func _new_flight(mission: Dictionary, fc: Dictionary) -> Dictionary:
 	}
 
 
-## Метеорные потоки, которые пересекают типичный путь к Луне в случайные моменты.
 func _make_hazards(phi0: float) -> Array:
 	var nominal := T.simulate(phi0, phi0 + deg_to_rad(F.NOMINAL_OFFSET_DEG), F.NOMINAL_DV)
 	var names: Array = F.METEOR_STREAMS.duplicate()
 	_shuffle(names)
-	var arts := [0, 1, 2, 3] # главный камень у каждого потока свой (0 — самый крупный)
+	var arts := [0, 1, 2, 3]
 	_shuffle(arts)
 	var out := []
 	for i in _rng.randi_range(2, 3):
@@ -501,7 +484,7 @@ func _make_hazards(phi0: float) -> Array:
 		var along := (T.sample(nominal, "pts", tc + 900.0) - p).normalized()
 		var normal := Vector2(-along.y, along.x) * (1.0 if _rng.randf() < 0.5 else -1.0)
 		var art: int = arts[i]
-		var radius := _rng.randf_range(42000.0, 46000.0) - art * 4000.0 # крупнее камень — шире поток
+		var radius := _rng.randf_range(42000.0, 46000.0) - art * 4000.0
 		var center := p + along * _rng.randf_range(-1.6, 1.6) * radius
 		var v := normal * _rng.randf_range(0.25, 0.6)
 		var start := center - v * tc
@@ -513,7 +496,7 @@ func _make_hazards(phi0: float) -> Array:
 func _flight_tli(theta: float, dv: float) -> String:
 	var fl: Dictionary = state["flight"]
 	if fl.is_empty() or fl["phase"] != "tli":
-		return "Сейчас разгон невозможен"
+		return "A burn is not possible right now"
 	dv = clampf(dv, F.DV_MIN, F.DV_MAX)
 	var traj := T.simulate(fl["phi0"], theta, dv, fl["hazards"])
 	var ev := T.evaluate(traj, fl["profile"], dv, fl["budget"], fl["hazards"])
@@ -534,18 +517,18 @@ func _start_coast(theta: float, dv: float, traj: Dictionary, ev: Dictionary) -> 
 	var pending := []
 	for id in fl["weak"]:
 		if _rng.randf() < F.BREAK_CHANCE:
-			pending.append({"id": id, "t": float(traj["peri_t"]) * _rng.randf_range(0.2, 0.85), "cause": "слабое место"})
+			pending.append({"id": id, "t": float(traj["peri_t"]) * _rng.randf_range(0.2, 0.85), "cause": "weak point"})
 	for hit in traj["hazards"]:
 		if _rng.randf() < F.METEOR_HIT_CHANCE:
 			var h: Dictionary = fl["hazards"][hit[0]]
 			var id: String = F.FAULT_ORDER[_rng.randi() % F.FAULT_ORDER.size()]
-			pending.append({"id": id, "t": float(hit[1]), "cause": "пробой метеоритом, поток «%s»" % h["name"]})
+			pending.append({"id": id, "t": float(hit[1]), "cause": "meteoroid puncture, '%s' stream" % h["name"]})
 	pending.sort_custom(func(a, b): return a["t"] < b["t"])
 	fl["pending"] = pending
 	fl["t"] = 0.0
 	_set_phase(fl, "coast")
-	_notify("Разгон к Луне выполнен: Δv %.3f км/с, перелёт %.1f сут%s." % [
-		dv, T.transit_days(traj), ", траектория свободного возврата" if traj["free_return"] else ""])
+	_notify("Translunar injection complete: Δv %.3f km/s, transit %.1f days%s." % [
+		dv, T.transit_days(traj), ", free-return trajectory" if traj["free_return"] else ""])
 
 
 func _process_flight(delta: float) -> void:
@@ -589,8 +572,8 @@ func _apply_pending(fl: Dictionary) -> void:
 			continue
 		fl["faults"].append(p)
 		var f: Dictionary = F.FAULTS[p["id"]]
-		_notify("⚠ Нештатная ситуация на борту миссии #%d! Инженер, проверьте телеметрию." % fl["n"])
-		_notify_to_role("engineer", "⚠ Телеметрия: %s — %s (%s). Передайте отчёт диспетчеру!" % [f["name"], f["broken"], p["cause"]])
+		_notify("⚠ Emergency on board mission #%d! Engineer, check the telemetry." % fl["n"])
+		_notify_to_role("engineer", "⚠ Telemetry: %s: %s (%s). Send the report to the dispatcher!" % [f["name"], f["broken"], p["cause"]])
 		_broadcast()
 
 
@@ -606,39 +589,39 @@ func _arrive(fl: Dictionary) -> void:
 	var fr: bool = fl["sum"]["free_return"]
 	var peri := roundi(float(fl["sum"]["peri_alt"]))
 	if fl["profile"] == "flyby":
-		_notify("Пролёт у Луны на высоте %d км! Луна разворачивает корабль к Земле." % peri)
+		_notify("Lunar flyby at %d km! The Moon swings the ship back toward Earth." % peri)
 		_set_phase(fl, "return")
 		return
-	fl["pending"] = [] # дальше корабль уходит с расчётной траектории
+	fl["pending"] = []
 	if broken.has("engine") or broken.has("oxygen"):
 		var why: String = F.FAULTS["engine" if broken.has("engine") else "oxygen"]["broken"]
 		if fr:
 			fl["outcome"] = "aborted"
-			_notify("Посадка отменена: %s. Корабль облетает Луну и возвращается по траектории свободного возврата." % why)
+			_notify("Landing cancelled: %s. The ship loops around the Moon and returns on a free-return trajectory." % why)
 			_set_phase(fl, "return")
 		else:
 			fl["outcome"] = "lost"
-			_notify("Авария: %s, а траектория не возвращает к Земле. Экипаж эвакуирован, корабль и приборы потеряны." % why)
+			_notify("Accident: %s, and the trajectory does not lead back to Earth. The crew was evacuated; the ship and instruments are lost." % why)
 			_finish_flight()
 		return
-	_notify("Торможение у Луны выполнено: орбита %d км над поверхностью." % peri)
+	_notify("Lunar orbit insertion complete: orbit %d km above the surface." % peri)
 	if fl["profile"] == "orbit":
 		_set_phase(fl, "orbit")
 	else:
 		_set_phase(fl, "site")
-		_notify_to_role("dispatcher", "Корабль на орбите Луны — выберите место посадки в ЦУП!")
+		_notify_to_role("dispatcher", "The ship is in lunar orbit: choose a landing site at Mission Control!")
 
 
 func _flight_site(site_id: String) -> String:
 	var fl: Dictionary = state["flight"]
 	if fl.is_empty() or fl["phase"] != "site":
-		return "Сейчас выбирать место посадки нельзя"
+		return "You can't choose a landing site right now"
 	if not F.SITES.has(site_id):
-		return "Неизвестное место посадки"
+		return "Unknown landing site"
 	fl["site"] = site_id
 	fl["crash"] = _rng.randf() < T.crash_risk(site_id, _broken(fl))
 	_set_phase(fl, "landing")
-	_notify("Посадочный модуль идёт на посадку: %s..." % F.SITES[site_id]["name"])
+	_notify("The lander is descending: %s..." % F.SITES[site_id]["name"])
 	return ""
 
 
@@ -659,6 +642,8 @@ func _finish_flight() -> void:
 		_rpc_flight_done.rpc(res)
 	else:
 		_rpc_flight_done(res)
+	if st["total_data"] >= D.DATA_GOAL:
+		_finish(true)
 
 
 func _flight_result(fl: Dictionary) -> Dictionary:
@@ -677,42 +662,42 @@ func _flight_result(fl: Dictionary) -> Dictionary:
 	var f_all := 1.0
 	if outcome == "lost":
 		f_orb = 0.0
-		lines.append("Корабль потерян — данных нет")
+		lines.append("Ship lost: no data")
 	elif outcome == "aborted":
 		f_orb = 0.5
-		lines.append("Миссия прервана: приборы успели поработать только на пролёте (×0.5)")
+		lines.append("Mission aborted: instruments only worked during the flyby (×0.5)")
 	else:
 		if profile == "flyby":
 			f_orb = 1.0 if peri <= 500.0 else (0.8 if peri <= 3000.0 else 0.6)
-			lines.append("Пролёт в %d км от Луны: орбитальные приборы ×%.1f" % [roundi(peri), f_orb])
+			lines.append("Flyby %d km from the Moon: orbital instruments ×%.1f" % [roundi(peri), f_orb])
 		else:
 			f_orb = 1.0 if peri <= 300.0 else (0.85 if peri <= 1000.0 else 0.7)
-			lines.append("Орбита %d км: орбитальные приборы ×%.2f" % [roundi(peri), f_orb])
+			lines.append("Orbit %d km: orbital instruments ×%.2f" % [roundi(peri), f_orb])
 		if D.PROFILES[profile]["surface"] and site != "":
 			var s: Dictionary = F.SITES[site]
 			if fl["crash"]:
 				outcome = "crash"
-				lines.append("Посадочный модуль разбился на склоне: данных с поверхности нет")
+				lines.append("The lander crashed on a slope: no surface data")
 			else:
 				f_surf = 0.8 + 0.4 * float(s["light"]) / 100.0
-				lines.append("%s: Солнце %d%% времени — поверхность ×%.2f" % [s["name"], s["light"], f_surf])
+				lines.append("%s: sunlight %d%% of the time, surface ×%.2f" % [s["name"], s["light"], f_surf])
 				if broken.has("power") and not T.site_req_ok("power", site):
 					f_surf *= 0.5
-					lines.append("Изношенные батареи сели в тени: поверхность ×0.5")
+					lines.append("Worn batteries died in the shadow: surface ×0.5")
 				f_link = 0.7 + 0.3 * float(s["earth"]) / 100.0
-				lines.append("Земля видна %d%% времени — связь ×%.2f" % [s["earth"], f_link])
+				lines.append("Earth visible %d%% of the time, comms ×%.2f" % [s["earth"], f_link])
 				if broken.has("comms") and not T.site_req_ok("comms", site):
 					f_link *= 0.6
-					lines.append("Слабая антенна теряла Землю: связь ×0.6")
+					lines.append("The weak antenna kept losing Earth: comms ×0.6")
 				if profile == "return":
 					f_samp = 1.0
-					lines.append("Образцы доставлены на Землю")
+					lines.append("Samples delivered to Earth")
 		if broken.has("shield") and days > 2.5:
 			f_all *= 0.8
-			lines.append("Долгий перелёт с повреждённой защитой: доза радиации, ×0.8")
+			lines.append("Long transit with damaged shielding: radiation dose, ×0.8")
 		if broken.has("oxygen") and days > 3.0:
 			f_all *= 0.7
-			lines.append("Экипаж долго дышал аварийным запасом кислорода: ×0.7")
+			lines.append("The crew breathed emergency oxygen for too long: ×0.7")
 		if outcome == "":
 			outcome = "success"
 	var science: float = (float(parts["orbital"]) * f_orb + float(parts["surface"]) * f_surf) * float(parts["mult"]) * f_link
@@ -723,7 +708,7 @@ func _flight_result(fl: Dictionary) -> Dictionary:
 			met.append(F.PRIORITIES[p]["name"])
 	if not met.is_empty():
 		data *= 1.0 + F.PRIORITY_BONUS * met.size()
-		lines.append("Приоритеты NASA: %s (+%d%% данных, грант +%d М$)" % [
+		lines.append("NASA priorities: %s (+%d%% data, grant +%d M$)" % [
 			", ".join(met), roundi(F.PRIORITY_BONUS * 100 * met.size()), F.PRIORITY_GRANT * met.size()])
 	var fault_names: PackedStringArray = []
 	for f in fl["faults"]:
@@ -754,7 +739,6 @@ func _priority_met(prio_id: String, fl: Dictionary, orb_ok: bool, surf_ok: bool,
 	return false
 
 
-## Автопилот только для одиночного теста не за диспетчера: иначе полёт встанет.
 func _autopilot(fl: Dictionary) -> void:
 	if _online() or HighLevelNetworkHandler.test_role == "dispatcher" or fl["t_phase"] < 4.0:
 		return
@@ -762,7 +746,7 @@ func _autopilot(fl: Dictionary) -> void:
 		var theta: float = fl["phi0"] + deg_to_rad(F.NOMINAL_OFFSET_DEG)
 		var traj := T.simulate(fl["phi0"], theta, F.NOMINAL_DV, fl["hazards"])
 		var ev := T.evaluate(traj, fl["profile"], F.NOMINAL_DV, fl["budget"], fl["hazards"])
-		_notify("ТЕСТ: автопилот выполнил разгон за диспетчера.")
+		_notify("TEST: the autopilot performed the burn for the dispatcher.")
 		_start_coast(theta, F.NOMINAL_DV, traj, ev)
 	elif fl["phase"] == "site":
 		var best := ""
@@ -775,11 +759,9 @@ func _autopilot(fl: Dictionary) -> void:
 			if score > best_score:
 				best_score = score
 				best = id
-		_notify("ТЕСТ: автопилот выбрал место посадки за диспетчера.")
+		_notify("TEST: the autopilot chose a landing site for the dispatcher.")
 		_flight_site(best)
 
-
-# --- Слабые места и приоритеты ------------------------------------------------
 
 func _roll_weak(ship_id: String) -> Array:
 	var ids: Array = F.FAULT_ORDER.duplicate()
@@ -805,7 +787,7 @@ func _shuffle(arr: Array) -> void:
 func _prio_names(ids: Array) -> String:
 	var names: PackedStringArray = []
 	for id in ids:
-		names.append("«%s»" % F.PRIORITIES[id]["name"])
+		names.append("'%s'" % F.PRIORITIES[id]["name"])
 	return ", ".join(names)
 
 
@@ -815,8 +797,6 @@ func _fault_names(ids: Array) -> String:
 		names.append(F.FAULTS[id]["name"].to_lower())
 	return ", ".join(names)
 
-
-# --- Синхронизация ------------------------------------------------------------
 
 func _online() -> bool:
 	var peer := multiplayer.multiplayer_peer
@@ -837,7 +817,6 @@ func _notify(text: String) -> void:
 		notified.emit(text)
 
 
-## Ошибка — только тому, кто нажал.
 func _notify_role(text: String) -> void:
 	var sender := multiplayer.get_remote_sender_id()
 	if _online() and sender != 0 and sender != multiplayer.get_unique_id():
@@ -846,7 +825,6 @@ func _notify_role(text: String) -> void:
 		notified.emit("⚠ " + text)
 
 
-## Сообщение только игроку с этой ролью.
 func _notify_to_role(role: String, text: String) -> void:
 	if _online():
 		var pid := HighLevelNetworkHandler.peer_for_role(role)

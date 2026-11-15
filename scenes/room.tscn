@@ -232,7 +232,7 @@ position = Vector2(-23, 37)
 shape = SubResource("shape_7")
 
 [node name="SpacesuitStation" type="Node2D" parent="Props"]
-position = Vector2(60, 294)
+position = Vector2(245.5, 116)
 script = ExtResource("ws")
 role = "astronaut"
 station_name = "Airlock and spacesuit"
@@ -241,7 +241,7 @@ action_text = "Put on the spacesuit"
 [node name="Sprite2D" type="Sprite2D" parent="Props/SpacesuitStation"]
 texture_filter = 1
 material = SubResource("outline_mat")
-position = Vector2(141, -221)
+position = Vector2(-44.5, -43)
 scale = Vector2(2, 2)
 texture = ExtResource("tex_13")
 centered = false
@@ -249,24 +249,24 @@ centered = false
 [node name="Body" type="StaticBody2D" parent="Props/SpacesuitStation"]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Props/SpacesuitStation/Body"]
-position = Vector2(185.5, -145)
+position = Vector2(0, 33)
 shape = SubResource("shape_8")
 
 [node name="InteractArea" type="Area2D" parent="Props/SpacesuitStation"]
 monitorable = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Props/SpacesuitStation/InteractArea"]
-position = Vector2(185.5, -145)
+position = Vector2(0, 33)
 shape = SubResource("shape_9")
 
 [node name="Hint" type="Label" parent="Props/SpacesuitStation"]
 visible = false
 z_index = 50
 z_as_relative = false
-offset_left = -160.0
-offset_top = -132.0
-offset_right = 160.0
-offset_bottom = -106.0
+offset_left = -345.5
+offset_top = 46.0
+offset_right = -25.5
+offset_bottom = 72.0
 theme_override_colors/font_outline_color = Color(0.05, 0.06, 0.12, 1)
 theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 15

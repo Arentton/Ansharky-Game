@@ -820,19 +820,20 @@ y_sort_enabled = true
 script = ExtResource("8_game")
 
 [node name="Room" parent="." instance=ExtResource("2_hiivq")]
-position = Vector2(199, 11)
+position = Vector2(183, 10)
 
 [node name="analyst" type="CharacterBody2D" parent="."]
-position = Vector2(491, 443)
+position = Vector2(541, 443)
 script = ExtResource("1_04qyp")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="analyst"]
-position = Vector2(0, 33)
+position = Vector2(-48, 50)
 rotation = 1.5707964
 shape = SubResource("CapsuleShape2D_ifa78")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="analyst"]
 texture_filter = 1
+position = Vector2(-48, 14)
 scale = Vector2(2, 2)
 sprite_frames = SubResource("SpriteFrames_4bto7")
 animation = &"idle_down_analyst"
@@ -866,22 +867,22 @@ public_visibility = false
 position = Vector2(603, 467)
 script = ExtResource("3_fws66")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="dispatcher"]
-position = Vector2(0, 33)
-rotation = 1.5707964
-shape = SubResource("CapsuleShape2D_ifa78")
-
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="dispatcher"]
 texture_filter = 1
 scale = Vector2(2, 2)
 sprite_frames = SubResource("SpriteFrames_4bto7")
 animation = &"idle_down_dispatcher"
 autoplay = "idle_down_dispatcher"
-frame_progress = 0.739155
+frame_progress = 0.76564395
 
 [node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="dispatcher"]
 replication_config = SubResource("SceneReplicationConfig_player")
 public_visibility = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="dispatcher"]
+position = Vector2(0, 33)
+rotation = 1.5707964
+shape = SubResource("CapsuleShape2D_ifa78")
 
 [node name="engineer" type="CharacterBody2D" parent="."]
 position = Vector2(659, 443)
